@@ -1,0 +1,187 @@
+{% load static i18n %}
+{% load tz %}
+
+<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>{% block title %}Yerima Mining{% endblock title %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Offline Mining Transaction System" />
+    <meta name="author" content="Hamzury Innovation Hub" />
+    <link rel="icon" href="{% static 'images/favicons/logo_new4.ico' %}" />
+
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="{% static 'vendor/all.min.css' %}"  />
+
+    {% block css %}
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap.min.css' %}" />
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet" />
+    {% endblock css %}
+
+    {% block extra_css %}{% endblock extra_css %}
+    
+    {% block javascript %}
+    <script defer src="{% static 'js/bootstrap.bundle.min.js' %}" integrity="sha512-..." crossorigin="anonymous"></script>
+    <script defer src="{% static 'js/mineral_float.js' %}"></script>
+    <script defer src="{% static 'js/project.js' %}"></script>
+    {% endblock javascript %}
+  </head>
+
+  <body class="yarima-body d-flex {% block bodyclass %}{% endblock bodyclass %}">
+    {% block body %}
+
+    <!-- Mobile Sidebar Toggle Button -->
+    <button class="sidebar-toggle d-md-none" id="sidebarToggle" aria-label="Toggle sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay d-md-none" id="sidebarOverlay"></div>
+
+    <!-- 3D Sidebar -->
+    <aside id="sidebar-3d" class="sidebar-3d">
+      <div class="sidebar-header">
+        <div class="sidebar-logo text-center my-3">
+          <img src="{% static 'images/logo_new4.png' %}" alt="Yerima Logo" class="logo-glow" />
+          <h4 class="text-white mt-2">Yerima Mining</h4>
+        </div>
+        
+        <!-- Close button for mobile -->
+        <button class="sidebar-close d-md-none" id="sidebarClose" aria-label="Close sidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav flex-column mt-4 px-2">
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{% url 'home' %}">
+              <i class="fas fa-home me-2"></i>Home
+            </a>
+          </li>
+          
+          {% if request.user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{% url 'users:detail' request.user.pk %}">
+              <i class="fas fa-user me-2"></i>{% trans "My Profile" %}
+            </a>
+          </li>
+          <li class="nav-item">
+             <a class="nav-link text-white" href="{% url 'core:today_analysis' %}">
+              <i class="fas fa-file-alt me-2"></i>Today Analysis
+            </a>
+          </li>
+          {% block sidebar_nav %}
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{% url 'core:dashboard_router' %}">
+              <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </a>
+          </li>
+          {% endblock sidebar_nav %}
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{% url 'account_logout' %}">
+              <i class="fas fa-sign-out-alt me-2"></i>{% trans "Sign Out" %}
+            </a>
+          </li>
+          <p class="text-hidden" style="display: none;"</p>
+            <small class="text-white"> archpragmatic build this web app 
+          <p/>
+          {% else %}
+          {% if ACCOUNT_ALLOW_REGISTRATION %}
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{% url 'account_signup' %}">
+              <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up" %}
+            </a>
+          </li>
+          {% endif %}
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{% url 'account_login' %}">
+              <i class="fas fa-sign-in-alt me-2"></i>{% trans "Sign In" %}
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+     
+    </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1 p-4">
+      <div class="background-minerals"></div>
+      <div class="glass-container p-4">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% block main %}
+        {% block content %}
+          <p class="text-white">Welcome to Yerima Mining.</p>
+        {% endblock content %}
+        {% endblock main %}
+      </div>
+    </main>
+
+    {% endblock body %}
+
+    {% block modal %}{% endblock modal %}
+    {% block inline_javascript %}
+    <script>
+      // Sidebar toggle functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar-3d');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function openSidebar() {
+          sidebar.classList.add('sidebar-open');
+          sidebarOverlay.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+          sidebar.classList.remove('sidebar-open');
+          sidebarOverlay.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+
+        if (sidebarToggle) {
+          sidebarToggle.addEventListener('click', openSidebar);
+        }
+
+        if (sidebarClose) {
+          sidebarClose.addEventListener('click', closeSidebar);
+        }
+
+        if (sidebarOverlay) {
+          sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        // Close sidebar on escape key
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && sidebar.classList.contains('sidebar-open')) {
+            closeSidebar();
+          }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+          if (window.innerWidth >= 768) {
+            closeSidebar();
+          }
+        });
+      });
+    </script>
+    {% endblock inline_javascript %}
+  </body>
+</html>

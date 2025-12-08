@@ -1,0 +1,127 @@
+{% extends "account/base_entrance.html" %}
+{% load static i18n allauth account %}
+
+{% block head_title %}
+  {% trans "Sign In" %}
+{% endblock head_title %}
+
+{% block auth_type %}Sign in{% endblock auth_type %}
+
+{% block content %}
+<div class="login-container d-flex align-items-center justify-content-center">
+  <div class="glass-card p-4">
+    
+
+    {% if not SOCIALACCOUNT_ONLY %}
+      {% setvar link %}<a href="{{ signup_url }}" class="text-link">{% endsetvar %}
+      {% setvar end_link %}</a>{% endsetvar %}
+      <p class="text-light mb-4">
+        {% blocktranslate %}If you have not created an account yet, please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
+      </p>
+
+      {% url 'account_login' as login_url %}
+      <form method="post" action="{{ login_url }}" class="needs-validation" novalidate>
+        {% csrf_token %}
+                
+                <!-- Render form fields -->
+                {% for field in form %}
+                <div class="mb-3">
+                    {% if field.label %}
+                    <label for="{{ field.id_for_label }}" class="form-label">
+                        {{ field.label }}
+                        {% if field.field.required %}
+                        <span class="text-danger">*</span>
+                        {% endif %}
+                    </label>
+                    {% endif %}
+                    
+                    <!-- Apply classes to field -->
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                    <div class="form-check">
+                        {{ field }}
+                        {% if field.label %}
+                        <label class="form-check-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                        </label>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    {{ field }}
+                    {% endif %}
+                    
+                    <!-- Field errors -->
+                    {% if field.errors %}
+                    <ul class="errorlist">
+                        {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <!-- Non-field errors -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-glass alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="d-grid gap-2 mt-4 mb-4">
+                    <button type="submit" class="btn btn-primary-glass">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Sign In
+                    </button>
+                </div>
+      </form>
+    {% endif %}
+
+    {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
+      <hr class="bg-light" />
+      <div class="d-grid gap-2 mt-3">
+        {% if PASSKEY_LOGIN_ENABLED %}
+          <button type="submit" form="mfa_login" id="passkey_login" class="btn btn-outline-primary">
+            {% trans "Sign in with a passkey" %}
+          </button>
+        {% endif %}
+        {% if LOGIN_BY_CODE_ENABLED %}
+          <a href="{{ request_login_code_url }}" class="btn btn-outline-primary">
+            {% trans "Send me a sign-in code" %}
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if SOCIALACCOUNT_ENABLED %}
+      <hr class="bg-light" />
+      {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+    {% endif %}
+
+    <!-- Powered by Hamzury Innovation Hub -->
+    <div class="mt-4 pt-3 border-top border-secondary">
+      <div class="text-center">
+        <div class="d-flex align-items-center justify-content-center">
+          <img src="{% static 'images/hamzury_logo.jpg' %}" 
+               alt="Hamzury Innovation Hub Logo" 
+               class="me-2" 
+               style="height: 24px; width: auto;">
+          <small class="text-muted">
+            Powered by <strong>Hamzury Innovation Hub</strong>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_body %}
+  {{ block.super }}
+  {% if PASSKEY_LOGIN_ENABLED %}
+    {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
+  {% endif %}
+{% endblock extra_body %}

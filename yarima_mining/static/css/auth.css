@@ -1,0 +1,71 @@
+.auth-body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.auth-container {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.auth-left {
+  width: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  padding: 2rem;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  color: #ffffff;
+}
+
+.logo-glow-small {
+  width: 60px;
+  filter: drop-shadow(0 0 10px rgba(214, 51, 108, 0.8));
+  margin-bottom: 1rem;
+}
+
+.auth-right {
+  width: 50%;
+  background: linear-gradient(to bottom, #2c2c2c, #1a1a1a);
+  position: relative;
+  overflow: hidden;
+}
+
+.mineral-fall-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+.mineral-fall {
+  position: absolute;
+  width: 60px;
+  opacity: 0.7;
+  animation: fallMineral 10s infinite ease-in-out;
+}
+@keyframes fallMineral {
+  0% { transform: translateY(-100px); }
+  100% { transform: translateY(100vh); }
+}
+.mineral-fall:nth-child(1) { left: 10%; animation-delay: 3s; }
+.mineral-fall:nth-child(2) { left: 40%; animation-delay: 4s; }
+.mineral-fall:nth-child(3) { left: 70%; animation-delay: 5s; }
+.mineral-fall:nth-child(4) { left: 20%; animation-delay: 1s; }
+.mineral-fall:nth-child(5) { left: 60%; animation-delay: 3s; }
+.mineral-fall:nth-child(6) { left: 80%; animation-delay: 2s; }

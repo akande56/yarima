@@ -1,0 +1,53 @@
+<!-- office3/templates/office3/partials/mineral_row.html -->
+<tr id="mineral-row-{{ mineral.id }}">
+  <td><strong>{{ mineral.name }}</strong></td>
+  <td>{{ mineral.description|default:"-" }}</td>
+  <td>
+    <button class="btn btn-sm btn-outline-light accordion-toggle"
+            data-bs-toggle="collapse"
+            data-bs-target="#grades-{{ mineral.id }}"
+            aria-expanded="false">
+      View Grades ({{ mineral.grades.count }})
+    </button>
+  </td>
+  <td>
+    <div class="d-flex gap-1">
+      <button class="btn btn-warning btn-action-sm edit-mineral"
+              data-id="{{ mineral.id }}"
+              data-name="{{ mineral.name }}"
+              data-description="{{ mineral.description|default:"" }}">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button class="btn btn-danger btn-action-sm delete-mineral"
+              data-id="{{ mineral.id }}">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  </td>
+</tr>
+<tr class="collapse" id="grades-{{ mineral.id }}">
+  <td colspan="4">
+    <div class="p-3 bg-dark bg-opacity-25 rounded">
+      <h6>Grades for {{ mineral.name }}</h6>
+      <table class="table table-sm table-dark mt-2">
+        <thead>
+          <tr>
+            <th>Grade Name</th>
+            <th>Price per lb</th>
+            <th>Price per kg</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for grade in mineral.grades.all %}
+            {% include 'office3/partials/grade_row.html' %}
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted">No grades defined</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </td>
+</tr>

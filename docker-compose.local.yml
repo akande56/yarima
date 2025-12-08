@@ -1,0 +1,40 @@
+volumes:
+  yarima_mining_local_postgres_data: {}
+  yarima_mining_local_postgres_data_backups: {}
+  
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    image: yarima_mining_local_django
+    container_name: yarima_mining_local_django
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app:z
+    restart: unless-stopped
+    env_file:
+      - ./.envs/.local/.django
+      - ./.envs/.local/.postgres
+    ports:
+      - '8000:8000'
+    command: /start
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/production/postgres/Dockerfile
+    image: yarima_mining_production_postgres
+    container_name: yarima_mining_local_postgres
+    volumes:
+      - yarima_mining_local_postgres_data:/var/lib/postgresql/data
+      - yarima_mining_local_postgres_data_backups:/backups
+    # restart: unless-stopped
+    env_file:
+      - ./.envs/.local/.postgres
+      
+  redis:
+    image: docker.io/redis:6
+    # restart: unless-stopped

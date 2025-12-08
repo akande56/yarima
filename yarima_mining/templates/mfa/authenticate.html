@@ -1,0 +1,535 @@
+{% extends "account/base_entrance.html" %}
+{% load i18n %}
+{% load allauth %}
+{% load allauth static %}
+
+{% block title %}{% trans "Two-Factor Authentication" %} - Your App{% endblock %}
+
+{% block css %}
+{{ block.super }}
+<style>
+    /* MFA-specific styling */
+    .mfa-container {
+        max-width: 500px;
+    }
+
+    .mfa-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .mfa-header .logo-glow {
+        filter: drop-shadow(0 0 25px rgba(214, 51, 108, 0.5));
+        transition: all 0.3s ease;
+        animation: securityPulse 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes securityPulse {
+        0% {
+            filter: drop-shadow(0 0 25px rgba(214, 51, 108, 0.5));
+            transform: scale(1);
+        }
+        100% {
+            filter: drop-shadow(0 0 35px rgba(214, 51, 108, 0.7));
+            transform: scale(1.02);
+        }
+    }
+
+    .mfa-title {
+        background: linear-gradient(135deg, #ffffff, #d6336c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        font-size: 26px;
+        margin-bottom: 8px;
+    }
+
+    .mfa-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        font-weight: 400;
+        margin-bottom: 0;
+        line-height: 1.4;
+    }
+
+    /* Security icon styling */
+    .security-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, var(--primary-accent), var(--primary-accent-hover));
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        box-shadow: 
+            0 12px 24px rgba(214, 51, 108, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        animation: iconGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes iconGlow {
+        0% {
+            box-shadow: 
+                0 12px 24px rgba(214, 51, 108, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        100% {
+            box-shadow: 
+                0 16px 32px rgba(214, 51, 108, 0.4),
+                0 0 20px rgba(214, 51, 108, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+    }
+
+    .security-icon i {
+        font-size: 20px;
+        color: white;
+    }
+
+    /* Code input styling */
+    .mfa-code-input {
+        text-align: center;
+        letter-spacing: 8px;
+        font-size: 24px;
+        font-weight: 600;
+        padding: 20px 16px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .mfa-code-input:focus {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: var(--primary-accent);
+        box-shadow: 
+            0 0 0 3px rgba(214, 51, 108, 0.15),
+            0 8px 24px rgba(0, 0, 0, 0.15),
+            0 0 30px rgba(214, 51, 108, 0.2);
+        letter-spacing: 12px;
+        transform: translateY(-1px);
+    }
+
+    .mfa-code-input::placeholder {
+        letter-spacing: 4px;
+        font-size: 16px;
+        font-weight: 400;
+    }
+
+    /* Button group styling */
+    .btn-group-mfa {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .btn-mfa-primary {
+        background: linear-gradient(135deg, var(--primary-accent), var(--primary-accent-hover));
+        border: none;
+        border-radius: 16px;
+        padding: 16px 32px;
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-mfa-primary:hover {
+        background: linear-gradient(135deg, var(--primary-accent-hover), #a02147);
+        transform: translateY(-2px);
+        box-shadow: 
+            0 12px 32px rgba(214, 51, 108, 0.4),
+            0 0 20px rgba(214, 51, 108, 0.3);
+    }
+
+    .btn-mfa-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 14px 28px;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .btn-mfa-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .btn-mfa-cancel {
+        background: transparent;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: rgba(239, 68, 68, 0.8);
+    }
+
+    .btn-mfa-cancel:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #fca5a5;
+    }
+
+    /* Alternative options section */
+    .alternative-section {
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .alternative-title {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    /* Security key button */
+    .btn-security-key {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: rgba(59, 130, 246, 0.9);
+    }
+
+    .btn-security-key:hover {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
+        border-color: rgba(59, 130, 246, 0.5);
+        color: #93c5fd;
+    }
+
+    /* Loading states */
+    .btn-loading {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    .btn-loading .spinner-border {
+        width: 1rem;
+        height: 1rem;
+        margin-right: 8px;
+    }
+
+    /* Help text */
+    .mfa-help {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .mfa-help i {
+        color: rgba(59, 130, 246, 0.8);
+        margin-right: 8px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+        .mfa-code-input {
+            font-size: 20px;
+            letter-spacing: 6px;
+            padding: 16px 12px;
+        }
+
+        .mfa-code-input:focus {
+            letter-spacing: 8px;
+        }
+
+        .btn-group-mfa {
+            gap: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block auth_type %}2FA  {% endblock auth_type %}
+
+{% block content %}
+<!-- Custom MFA Header -->
+<div class="text-center mb-4 mfa-header">
+    
+    <h1 class="mfa-title">{% trans "Two-Factor Authentication" %}</h1>
+    <p class="mfa-subtitle">
+        {% blocktranslate %}Your account is protected by two-factor authentication. Please enter your authenticator code below.{% endblocktranslate %}
+    </p>
+</div>
+
+<!-- Help Information -->
+<div class="mfa-help">
+    <i class="fas fa-info-circle"></i>
+    {% blocktranslate %}Enter the 6-digit code from your authenticator app (Google Authenticator, Authy, etc.){% endblocktranslate %}
+</div>
+
+<!-- MFA Authentication Form -->
+{% url 'mfa_authenticate' as action_url %}
+<form method="post" action="{{ action_url }}" id="mfaForm" novalidate>
+    {% csrf_token %}
+    
+    <!-- Code Input Field -->
+    {% for field in form %}
+    <div class="mb-3">
+        {% if field.label and not unlabeled %}
+        <label for="{{ field.id_for_label }}" class="form-label">
+            {{ field.label }}
+            {% if field.field.required %}
+            <span class="text-danger">*</span>
+            {% endif %}
+        </label>
+        {% endif %}
+        
+        <!-- Special styling for MFA code input -->
+        {% if 'code' in field.name or 'token' in field.name %}
+        <input type="text" 
+               class="form-control mfa-code-input" 
+               id="{{ field.id_for_label }}"
+               name="{{ field.name }}"
+               placeholder="000000"
+               maxlength="6"
+               autocomplete="one-time-code"
+               inputmode="numeric"
+               pattern="[0-9]{6}"
+               required>
+        {% else %}
+        {{ field }}
+        {% endif %}
+        
+        <!-- Field errors -->
+        {% if field.errors %}
+        <ul class="errorlist">
+            {% for error in field.errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Non-field errors -->
+    {% if form.non_field_errors %}
+    <div class="alert alert-glass alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {% for error in form.non_field_errors %}
+        {{ error }}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Primary Actions -->
+    <div class="btn-group-mfa">
+        <button type="submit" class="btn btn-mfa-primary" id="submitBtn">
+            <span class="btn-text">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                {% trans "Verify & Sign In" %}
+            </span>
+            <span class="btn-loading-text" style="display: none;">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                {% trans "Verifying..." %}
+            </span>
+        </button>
+        
+        {% if "webauthn" not in MFA_SUPPORTED_TYPES %}
+        <button type="submit" form="logout-from-stage" class="btn btn-mfa-secondary btn-mfa-cancel">
+            <i class="fas fa-times me-2"></i>
+            {% trans "Cancel" %}
+        </button>
+        {% endif %}
+    </div>
+</form>
+
+<!-- WebAuthn Alternative Options -->
+{% if "webauthn" in MFA_SUPPORTED_TYPES %}
+<div class="alternative-section">
+    <h2 class="alternative-title">{% translate "Alternative options" %}</h2>
+    
+    <div class="btn-group-mfa">
+        <button form="webauthn_form" 
+                id="mfa_webauthn_authenticate" 
+                type="button" 
+                class="btn btn-mfa-secondary btn-security-key">
+            <i class="fas fa-key me-2"></i>
+            {% trans "Use a security key" %}
+        </button>
+        
+        <button type="submit" 
+                form="logout-from-stage" 
+                class="btn btn-mfa-secondary btn-mfa-cancel">
+            <i class="fas fa-times me-2"></i>
+            {% trans "Cancel" %}
+        </button>
+    </div>
+    
+    <!-- WebAuthn Form -->
+    <form id="webauthn_form" method="post" action="{{ action_url }}" style="display: none;">
+        {% csrf_token %}
+        {% for field in webauthn_form %}
+        {{ field }}
+        {% endfor %}
+    </form>
+    
+    <!-- WebAuthn Scripts -->
+    {{ js_data|json_script:"js_data" }}
+    {% include "mfa/webauthn/snippets/scripts.html" %}
+    <script data-allauth-onload="allauth.webauthn.forms.authenticateForm" type="application/json">{
+        "ids": {
+            "authenticate": "mfa_webauthn_authenticate",
+            "credential": "{{ webauthn_form.credential.auto_id }}",
+            "data": "js_data"
+        }
+    }</script>
+{% endif %}
+
+<!-- Logout Form -->
+<form id="logout-from-stage" method="post" action="{% url 'account_logout' %}" style="display: none;">
+    <input type="hidden" name="next" value="{% url 'account_login' %}">
+    {% csrf_token %}
+</form>
+
+<!-- Additional Help -->
+<div class="text-center mt-4">
+    <p class="mb-2" style="color: rgba(255, 255, 255, 0.5); font-size: 13px;">
+        {% trans "Having trouble?" %}
+    </p>
+    <a href="#" class="glass-link" onclick="showHelp()">
+        <i class="fas fa-question-circle me-1"></i>
+        {% trans "Get help with 2FA" %}
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_body %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('mfaForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoadingText = submitBtn.querySelector('.btn-loading-text');
+    const codeInput = document.querySelector('.mfa-code-input');
+    
+    // Auto-format code input
+    if (codeInput) {
+        codeInput.addEventListener('input', function(e) {
+            // Only allow numbers
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Auto-submit when 6 digits are entered
+            if (this.value.length === 6) {
+                setTimeout(() => {
+                    form.submit();
+                }, 300);
+            }
+        });
+        
+        codeInput.addEventListener('paste', function(e) {
+            // Handle pasted codes
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            const numbers = paste.replace(/[^0-9]/g, '').slice(0, 6);
+            this.value = numbers;
+            
+            if (numbers.length === 6) {
+                setTimeout(() => {
+                    form.submit();
+                }, 300);
+            }
+        });
+        
+        // Focus the input on page load
+        codeInput.focus();
+    }
+    
+    // Form submission handling
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            // Validate code length
+            if (codeInput && codeInput.value.length !== 6) {
+                e.preventDefault();
+                codeInput.style.borderColor = '#ef4444';
+                codeInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.15)';
+                codeInput.focus();
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.classList.add('btn-loading');
+            btnText.style.display = 'none';
+            btnLoadingText.style.display = 'inline-block';
+            submitBtn.disabled = true;
+            
+            // Re-enable after timeout (in case of errors)
+            setTimeout(function() {
+                submitBtn.classList.remove('btn-loading');
+                btnText.style.display = 'inline-block';
+                btnLoadingText.style.display = 'none';
+                submitBtn.disabled = false;
+            }, 5000);
+        });
+    }
+    
+    // Clear validation styling on input
+    if (codeInput) {
+        codeInput.addEventListener('input', function() {
+            this.style.borderColor = '';
+            this.style.boxShadow = '';
+        });
+    }
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // ESC to cancel
+        if (e.key === 'Escape') {
+            const cancelBtn = document.querySelector('.btn-mfa-cancel');
+            if (cancelBtn) {
+                cancelBtn.click();
+            }
+        }
+        
+        // Enter to submit (if code is complete)
+        if (e.key === 'Enter' && codeInput && codeInput.value.length === 6) {
+            form.submit();
+        }
+    });
+});
+
+// Help function
+function showHelp() {
+    const helpText = `
+        Two-Factor Authentication Help:
+        
+        1. Open your authenticator app (Google Authenticator, Authy, etc.)
+        2. Find the entry for "${window.location.hostname}"
+        3. Enter the 6-digit code shown
+        4. The code changes every 30 seconds
+        
+        If you're having trouble:
+        - Make sure your phone's time is correct
+        - Try refreshing your authenticator app
+        - Contact support if you've lost access to your device
+    `;
+    
+    alert(helpText);
+}
+
+// Auto-refresh warning for expired codes
+setInterval(function() {
+    const codeInput = document.querySelector('.mfa-code-input');
+    if (codeInput && codeInput.value.length === 6) {
+        // Optional: Show a subtle warning that codes expire
+        console.log('Remember: 2FA codes expire every 30 seconds');
+    }
+}, 30000);
+</script>
+{% endblock %}

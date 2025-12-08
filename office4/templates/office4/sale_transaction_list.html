@@ -1,0 +1,665 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sales Transactions | Office 4{% endblock %}
+
+{% block sidebar_nav %}
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office4:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+  </a>
+</li>
+
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office4:transaction_list'  %}">
+    <i class="fas fa-chart-bar me-2"></i>Mineral Transactions
+  </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link text-white active" href="{% url 'office4:sale_transaction_list' %}">
+        <i class="fas fa-exchange-alt me-2"></i>Sale Transactions
+    </a>
+</li>
+
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office4:invoice_list' %}">
+    <i class="fas fa-file-invoice-dollar me-2"></i>Expenses Invoice
+  </a>
+</li>
+{% endblock sidebar_nav %}
+
+{% block extra_css %}
+<style>
+/* === TABLE CONTAINER (Horizontal Scroll) === */
+.table-container {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* Custom Scrollbar */
+.table-container::-webkit-scrollbar {
+  height: 6px;
+}
+.table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+.table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Table Styling */
+.data-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  color: white;
+  table-layout: auto;
+  white-space: nowrap;
+  margin: 0;
+  display: table;
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.data-table th {
+  background: rgba(50, 50, 50, 0.6);
+  text-align: left;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.data-table td {
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .data-table th, .data-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Table Footer (outside scroll) */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(30, 30, 30, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+/* === FORM CONTROLS === */
+#statusFilter,
+#startDate,
+#endDate,
+#searchRef {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #444 !important;
+}
+
+#statusFilter option {
+  background-color: #000;
+  color: #fff;
+}
+
+.form-control:focus {
+  background-color: #000 !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 0.25rem rgba(214, 51, 108, 0.25) !important;
+}
+
+/* === KPI CARDS === */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.25rem;
+  color: white;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.kpi-icon {
+  margin-bottom: 0.75rem;
+  font-size: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.kpi-icon i.text-primary { color: #0d6efd; }
+.kpi-icon i.text-warning { color: #ffc107; }
+.kpi-icon i.text-info { color: #17a2b8; }
+.kpi-icon i.text-success { color: #198754; }
+
+.kpi-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: white;
+  letter-spacing: -0.5px;
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .kpi-card {
+    padding: 1rem;
+  }
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+}
+
+/* === FILTER FORM === */
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.filter-group label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+.filter-group input,
+.filter-group select {
+  padding: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+}
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-self: end;
+}
+.btn-primary,
+.btn-secondary {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.btn-primary {
+  background: #1d68cd;
+  color: white;
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transition: background 0.2s ease;
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Badge colors */
+.bg-pending { background-color: #ffc107; }
+.bg-paid { background-color: #198754; }
+.bg-shipped { background-color: #0d6efd; }
+.bg-completed { background-color: #6f42c1; }
+.bg-cancelled { background-color: #dc3545; }
+
+.badge {
+  font-size: 0.8rem;
+  padding: 0.5em 0.7em;
+}
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="text-white mb-4">Sales Transactions</h2>
+
+    <!-- Filter Form -->
+    <div class="glass-container mb-4 p-4">
+        <form id="filterForm" class="filter-form">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="statusFilter">Status</label>
+                    <select name="status" id="statusFilter" class="form-control bg-dark text-light border-pink">
+                        <option value="paid" {% if request.GET.status == 'paid' %}selected{% endif %}>Paid</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" name="start_date" id="startDate" class="form-control bg-dark text-light border-pink" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="filter-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" name="end_date" id="endDate" class="form-control bg-dark text-light border-pink" value="{{ request.GET.end_date }}">
+                </div>
+                <div class="filter-group">
+                    <label for="searchRef">Reference No</label>
+                    <input type="text" name="reference_number" id="searchRef" class="form-control bg-dark text-light border-pink"
+                           placeholder="Search reference..." value="{{ request.GET.reference_number }}">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                    <button type="button" id="clearFilters" class="btn btn-secondary">
+                        <i class="fas fa-undo me-2"></i>Clear
+                    </button>
+                </div>
+                <div class="mb-3">
+                  <!-- Export link will be updated dynamically -->
+                  <a id="export-link" href="{% url 'office4:sale_transaction_export' %}" class="btn btn-success btn-sm" target="_blank">
+                     <i class="fas fa-download me-2"></i>Export to Excel
+                  </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpiContainer">
+        {% include 'office4/_kpi_cards.html' %}
+    </div>
+
+    <!-- Data Table with Horizontal Scroll -->
+    <div class="table-container">
+        <table class="data-table" id="tableBody">
+            {% include 'office4/_sale_transaction_rows.html' %}
+        </table>
+
+        <!-- Pagination Footer -->
+        <div class="table-footer">
+            <small id="paginationInfo" class="text-muted">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+            </small>
+            <div id="paginationControls" class="pagination-wrapper">
+                {% include 'office4/_pagination.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block modal %}
+<!-- Transaction Detail Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content glass-container border-pink shadow-lg">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white" id="transactionModalLabel">
+          <i class="fas fa-exchange-alt me-2"></i>Sales Transaction Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Basic Info -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Transaction ID:</strong>
+              <span class="text-white" id="modal-id">#</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Reference:</strong>
+              <span class="text-white" id="modal-reference">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Mineral:</strong>
+              <span class="text-white" id="modal-mineral">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Grade:</strong>
+              <span class="text-white" id="modal-grade">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Quantity:</strong>
+              <span class="text-white" id="modal-quantity">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Unit:</strong>
+              <span class="text-white" id="modal-unit">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Price per Unit:</strong>
+              <span class="text-white" id="modal-price-per-unit">—</span>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Buyer Name:</strong>
+              <span class="text-white" id="modal-buyer">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Buyer Contact:</strong>
+              <span class="text-white" id="modal-buyer-contact">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Sale Date:</strong>
+              <span class="text-white" id="modal-date">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Sale Time:</strong>
+              <span class="text-white" id="modal-time">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Processed By:</strong>
+              <span class="text-white" id="modal-processed-by">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Total Value:</strong>
+              <span class="text-white fw-bold text-success" id="modal-total-value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="col-12 mb-4">
+          <div class="border-top pt-3">
+            <strong class="text-muted">Notes:</strong>
+            <p class="text-white mt-1" id="modal-notes">—</p>
+          </div>
+        </div>
+
+        <!-- Buyer Identification -->
+        <div class="col-12 mb-4">
+          <h6 class="text-white mb-3"><i class="fas fa-id-card me-2"></i>Buyer Identification</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="d-flex justify-content-between">
+                <strong class="text-muted">BVN:</strong>
+                <span class="text-white" id="modal-bvn">—</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex justify-content-between">
+                <strong class="text-muted">NIN:</strong>
+                <span class="text-white" id="modal-nin">—</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex justify-content-between">
+                <strong class="text-muted">International ID:</strong>
+                <span class="text-white" id="modal-international-id">—</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex justify-content-between">
+                <strong class="text-muted">Driver's License:</strong>
+                <span class="text-white" id="modal-driver-license">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="card bg-dark text-white border-pink shadow-sm">
+          <div class="card-header bg-gradient-pink text-white">
+            <h6 class="mb-0"><i class="fas fa-coins me-2"></i>Financial Summary</h6>
+          </div>
+          <div class="card-body text-center">
+            <small class="text-muted">Total Amount</small>
+            <h3 class="text-success mb-0" id="modal-total-amount">—</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock modal %}
+
+{% block javascript %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // === Update Export Link with Current Filters ===
+    function updateExportLink() {
+        const status = document.getElementById('statusFilter').value;
+        const start_date = document.getElementById('startDate').value;
+        const end_date = document.getElementById('endDate').value;
+        const reference_number = document.getElementById('searchRef').value;
+
+        let exportUrl = '{% url "office4:sale_transaction_export" %}?';
+
+        if (status) exportUrl += `&status=${encodeURIComponent(status)}`;
+        if (start_date) exportUrl += `&start_date=${encodeURIComponent(start_date)}`;
+        if (end_date) exportUrl += `&end_date=${encodeURIComponent(end_date)}`;
+        if (reference_number) exportUrl += `&reference_number=${encodeURIComponent(reference_number)}`;
+
+        document.getElementById('export-link').href = exportUrl;
+    }
+
+    // === Load Transactions via AJAX ===
+    function loadTransactions() {
+        // ✅ Update export link before fetching
+        updateExportLink();
+
+        const formData = new FormData(document.getElementById('filterForm'));
+        const params = new URLSearchParams(formData);
+
+        document.getElementById('tableBody').innerHTML = `
+            <tr><td colspan="9" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <span class="ms-2">Loading...</span>
+            </td></tr>
+        `;
+
+        fetch(`{% url 'office4:sale_transaction_list' %}?${params.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('tableBody').innerHTML = data.rows_html;
+            document.getElementById('paginationInfo').textContent = data.pagination_info;
+            document.getElementById('paginationControls').innerHTML = data.pagination_html;
+
+            document.getElementById('kpiTotalCount').textContent = data.kpis.total_count;
+            document.getElementById('kpiTotalKg').textContent = data.kpis.total_kg + ' kg';
+            document.getElementById('kpiTotalLb').textContent = data.kpis.total_lb + ' lb';
+            document.getElementById('kpiTotalValue').textContent = '₦' + Number(data.kpis.total_value).toLocaleString('en-NG', {
+                minimumFractionDigits: 2
+            });
+
+            attachViewHandlers();
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            document.getElementById('tableBody').innerHTML = `
+                <tr><td colspan="9" class="text-center text-danger">Failed to load data.</td></tr>
+            `;
+            attachViewHandlers();
+        });
+    }
+
+    // === View Button Handler ===
+    function attachViewHandlers() {
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.onclick = null;
+            btn.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const ref = this.getAttribute('data-reference');
+                const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+                modal.show();
+
+                document.getElementById('transactionModalLabel').textContent = `Transaction: ${ref}`;
+                document.getElementById('modal-id').innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
+
+                fetch(`/office4/sales/${id}/detail/`)
+                    .then(r => r.ok ? r.json() : Promise.reject(new Error('Network error')))
+                    .then(data => {
+                        const date = new Date(data.sale_date);
+                        const formattedDate = isNaN(date.getTime()) ? 'Invalid Date' :
+                            date.toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: '2-digit' });
+                        const formattedTime = isNaN(date.getTime()) ? '' : date.toLocaleTimeString('en-NG', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        });
+
+                        const totalPrice = '₦' + Number(data.total_price).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                        const pricePerUnit = '₦' + Number(data.price_per_unit).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                        const quantity = Number(data.quantity).toLocaleString();
+
+                        document.getElementById('modal-id').textContent = data.id;
+                        document.getElementById('modal-reference').textContent = data.reference_number || '—';
+                        document.getElementById('modal-mineral').textContent = data.mineral_type || '—';
+                        document.getElementById('modal-grade').textContent = data.grade || '—';
+                        document.getElementById('modal-quantity').textContent = quantity || '—';
+                        document.getElementById('modal-unit').textContent = data.quantity_unit || '—';
+                        document.getElementById('modal-price-per-unit').textContent = pricePerUnit;
+                        document.getElementById('modal-buyer').textContent = data.buyer_name || '—';
+                        document.getElementById('modal-buyer-contact').textContent = data.buyer_contact || 'Not provided';
+                        document.getElementById('modal-date').textContent = formattedDate;
+                        document.getElementById('modal-time').textContent = formattedTime;
+                        document.getElementById('modal-processed-by').textContent = data.processed_by || '—';
+                        document.getElementById('modal-total-value').textContent = totalPrice;
+                        document.getElementById('modal-total-amount').textContent = totalPrice;
+                        document.getElementById('modal-notes').textContent = data.notes || 'No notes provided.';
+
+                        // === Populate ID fields ===
+                        document.getElementById('modal-bvn').textContent = data.bvn || 'Not provided';
+                        document.getElementById('modal-nin').textContent = data.nin || 'Not provided';
+                        document.getElementById('modal-international-id').textContent = data.international_id || 'Not provided';
+                        document.getElementById('modal-driver-license').textContent = data.driver_license || 'Not provided';
+                    })
+                    .catch(err => {
+                        document.getElementById('modal-id').innerHTML = `<span class="text-danger">Error loading details</span>`;
+                        console.error('Detail fetch error:', err);
+                    });
+            });
+        });
+    }
+
+    // === Filter Events ===
+    document.getElementById('filterForm').addEventListener('submit', e => {
+        e.preventDefault();
+        loadTransactions();
+    });
+
+    document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('filterForm').reset();
+        loadTransactions();
+    });
+
+    document.addEventListener('click', function (e) {
+        const pageLink = e.target.closest('.pagination-link');
+        if (pageLink && !pageLink.classList.contains('active')) {
+            e.preventDefault();
+            const page = new URL(pageLink.href).searchParams.get('page');
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'page';
+            pageInput.value = page;
+            document.getElementById('filterForm').appendChild(pageInput);
+            loadTransactions();
+            pageInput.remove();
+        }
+    });
+
+    // === Drag-to-Scroll (Desktop UX) ===
+    const container = document.querySelector('.table-container');
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    if (container) {
+        container.addEventListener('mousedown', (e) => {
+            isDown = true;
+            container.classList.add('grabbing');
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.classList.remove('grabbing');
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.classList.remove('grabbing');
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 2;
+            container.scrollLeft = scrollLeft - walk;
+        });
+    }
+
+    // === Initial Load ===
+    loadTransactions();  // This will update export link and load data
+});
+</script>
+{% endblock javascript %}

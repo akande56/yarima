@@ -1,0 +1,301 @@
+<!-- templates/core/today_analysis.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Today's Analysis | Yerima Mining{% endblock title %}
+
+{% block css %}
+{{ block.super }}
+<style>
+    .kpi-table th {
+        background-color: rgba(214, 51, 108, 0.3);
+        color: #ff4d94;
+        text-align: center;
+    }
+    .kpi-table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+    .collapsible-section {
+        display: none;
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(214, 51, 108, 0.1);
+    }
+    .btn-toggle {
+        background: linear-gradient(135deg, #d6336c, #c42a61);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    .btn-toggle:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(214, 51, 108, 0.4);
+    }
+    table {
+        width: 100%;
+        margin-top: 1rem;
+        border-collapse: collapse;
+        color: #f1f1f1;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    th, td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    th {
+        background: rgba(214, 51, 108, 0.2);
+        color: #ff4d94;
+    }
+    tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .text-center {
+        text-align: center;
+    }
+    .no-data {
+        text-align: center;
+        color: #aaa;
+        font-style: italic;
+        padding: 1rem;
+    }
+</style>
+{% endblock css %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h2 class="d-inline-block text-white" style="border-bottom: 3px solid #d6336c; padding-bottom: 0.5rem;">
+        📊 Today's Analysis
+    </h2>
+</div>
+
+<!-- === INFO EXPLANATION BOX === -->
+<div class="glass-container-info mb-4" style="
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(15px);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(214, 51, 108, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    max-width: 1000px;
+    margin: 0 auto 2rem auto;
+">
+    <h5 class="text-white mb-3" style="text-align: left; border-bottom: 2px solid rgba(214, 51, 108, 0.3); padding-bottom: 0.5rem;">
+        ℹ️ Understanding Today’s KPIs
+    </h5>
+    <div class="row row-cols-1 row-cols-md-2 g-3 text-start">
+        <div class="col">
+            <strong style="color: #ff4d94;">Kg (Original)</strong>
+            <p class="text-muted mb-2" style="font-size: 0.95rem;">
+                Total weight entered directly in kilograms (kg) across all transactions for this mineral today.
+            </p>
+        </div>
+        <div class="col">
+            <strong style="color: #ff4d94;">Lb (original)</strong>
+            <p class="text-muted mb-2" style="font-size: 0.95rem;">
+                Total weight entered in pounds (lb) across all transactions for this mineral today.
+            </p>
+        </div>
+        <div class="col">
+            <strong style="color: #ff4d94;">Converted (Kg)</strong>
+            <p class="text-muted mb-2" style="font-size: 0.95rem;">
+                The total weight in kilograms after converting all lb values (× 0.453592) and adding them to original kg.
+            </p>
+        </div>
+        <div class="col">
+            <strong style="color: #ff4d94;">Converted (Lb)</strong>
+            <p class="text-muted mb-2" style="font-size: 0.95rem;">
+                The total weight in pounds after converting all kg values (× 2.20462) and adding them to original lb.
+            </p>
+        </div>
+        <div class="col">
+            <strong style="color: #ff4d94;">Total Value (₦)</strong>
+            <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                The total monetary value of transactions for this mineral, calculated using price per unit or negotiated payout.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- === KPI TABLE BELOW === -->
+<div class="table-responsive">
+    <table class="table table-dark table-striped kpi-table">
+        <thead>
+            <tr>
+                <th>Mineral</th>
+                <th>Kg (Original)</th>
+                <th>Lb (original)</th>
+                <th>Converted (Kg)</th>
+                <th>Converted (Lb)</th>
+                <th>Total Value (₦)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if kpi_list %}
+                {% for kpi in kpi_list %}
+                <tr>
+                    <td><strong>{{ kpi.mineral.name }}</strong></td>
+                    <td>{{ kpi.kg_original }} kg</td>
+                    <td>{{ kpi.lb_raw }} lb</td>
+                    <td>{{ kpi.converted_kg|floatformat:2 }} kg</td>
+                    <td>{{ kpi.converted_lb|floatformat:2 }} lb</td>
+                    <td>₦{{ kpi.total_value|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="no-data">No transactions recorded today.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Divider -->
+<hr class="my-5" style="border-color: rgba(255,255,255,0.2);" />
+
+<!-- Toggle Buttons -->
+<div class="text-center mb-3">
+    <button class="btn-toggle" onclick="toggleSection('mineralsSection')">🔍 View Minerals</button>
+    <button class="btn-toggle" onclick="toggleSection('gradesSection')">🔍 View Grades</button>
+</div>
+
+<!-- Minerals Section -->
+<div id="mineralsSection" class="collapsible-section">
+    <h4 class="text-center text-white mb-3">📋 Minerals</h4>
+    <div class="d-flex justify-content-center">
+        <select id="mineralDropdown" class="form-select-dark form-control w-auto" style="min-width: 300px;" onchange="showMineralDetails()">
+            <option style="background-color: black; color: white;" value="">-- Select a Mineral --</option>
+            {% for mineral in all_minerals %}
+            <option style="background-color: black; color: white;" value="{{ mineral.id }}">{{ mineral.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="table-responsive mt-3">
+        <table id="mineralTable" class="table table-dark" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody id="mineralTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Grades Section -->
+<div id="gradesSection" class="collapsible-section">
+    <h4 class="text-center text-white mb-3">📋 Mineral Grades</h4>
+    <div class="d-flex justify-content-center">
+        <select id="gradeDropdown" class="form-select-dark form-control w-auto" style="min-width: 300px;" onchange="showGradeDetails()">
+            <option style="background-color: black; color: white;" value="">-- Select a Grade --</option>
+            {% for grade in all_grades %}
+            <option style="background-color: black; color: white;" value="{{ grade.id }}"
+                    data-mineral="{{ grade.mineral.name }}"
+                    data-grade="{{ grade.grade_name }}"
+                    data-price-kg="{{ grade.price_per_kg|floatformat:2 }}"
+                    data-price-lb="{{ grade.price_per_pound|floatformat:2 }}">
+                {{ grade.mineral.name }} - {{ grade.grade_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="table-responsive mt-3">
+        <table id="gradeTable" class="table table-dark" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Mineral</th>
+                    <th>Grade</th>
+                    <th>Price / Kg (₦)</th>
+                    <th>Price / Lb (₦)</th>
+                </tr>
+            </thead>
+            <tbody id="gradeTableBody"></tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}
+
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Make toggleSection globally available
+    window.toggleSection = function (sectionId) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        section.style.display = section.style.display === 'none' || section.style.display === '' ? 'block' : 'none';
+    };
+
+    // Show mineral details in table
+    window.showMineralDetails = function () {
+        const dropdown = document.getElementById("mineralDropdown");
+        const tableBody = document.getElementById("mineralTableBody");
+        const table = document.getElementById("mineralTable");
+
+        const selectedId = dropdown.value;
+        if (!selectedId) {
+            table.style.display = "none";
+            return;
+        }
+
+        const option = dropdown.selectedOptions[0];
+        const name = option.text;
+        const mineral = window.mineralData[selectedId];
+        const desc = mineral?.description || "No description available.";
+
+        tableBody.innerHTML = `<tr><td>${name}</td><td>${desc}</td></tr>`;
+        table.style.display = "table";
+    };
+
+    // Show grade details in table
+    window.showGradeDetails = function () {
+        const dropdown = document.getElementById("gradeDropdown");
+        const tableBody = document.getElementById("gradeTableBody");
+        const table = document.getElementById("gradeTable");
+
+        const selectedOption = dropdown.selectedOptions[0];
+        if (!selectedOption.value) {
+            table.style.display = "none";
+            return;
+        }
+
+        const mineral = selectedOption.dataset.mineral;
+        const grade = selectedOption.dataset.grade;
+        const priceKg = selectedOption.dataset.priceKg;
+        const priceLb = selectedOption.dataset.priceLb;
+
+        tableBody.innerHTML = `
+            <tr>
+                <td>${mineral}</td>
+                <td>${grade}</td>
+                <td>₦${priceKg}</td>
+                <td>₦${priceLb}</td>
+            </tr>
+        `;
+        table.style.display = "table";
+    };
+
+    // Preload mineral data for JS
+    window.mineralData = {
+        {% for mineral in all_minerals %}
+        "{{ mineral.id }}": {
+            id: "{{ mineral.id }}",
+            name: "{{ mineral.name|escape }}",
+            description: "{{ mineral.description|escape }}"
+        },
+        {% endfor %}
+    };
+});
+</script>
+{% endblock inline_javascript %}

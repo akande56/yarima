@@ -1,0 +1,20 @@
+#!/bin/bash
+# compose/production/django/start
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# Collect static files (runtime: settings + DB_URL are available)
+python /app/manage.py collectstatic --noinput
+
+# Start Gunicorn
+exec gunicorn config.wsgi \
+  --bind 0.0.0.0:5000 \
+  --workers 4 \
+  --worker-class gthread \
+  --threads 2 \
+  --forwarded-allow-ips="*" \
+  --log-level info \
+  --access-logfile - \
+  --error-logfile -

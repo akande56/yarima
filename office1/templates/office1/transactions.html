@@ -1,0 +1,652 @@
+<!-- office1/transactions.html -->
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+{% block title %}Office 1 - Transactions{% endblock title %}
+{% block extra_css %}
+<style>
+  .transaction-form {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(25px);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(214, 51, 108, 0.2);
+  }
+
+  /* Enhanced Filter Buttons */
+  .filter-buttons {
+    margin-bottom: 1.5rem;
+  }
+  .filter-btn {
+    background: linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(71, 85, 105, 0.1));
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    margin-right: 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .filter-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+  }
+  .filter-btn:hover::before {
+    left: 100%;
+  }
+  .filter-btn:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #60a5fa;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  }
+  .filter-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-color: #1d4ed8;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  }
+  .filter-btn.active:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Filter-specific colors */
+  .filter-btn[data-filter="all"] {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.1), rgba(75, 85, 99, 0.1));
+    border-color: rgba(156, 163, 175, 0.3);
+  }
+  .filter-btn[data-filter="all"].active {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+  }
+
+  .filter-btn[data-filter="today"] {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .filter-btn[data-filter="today"].active {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+
+  .filter-btn[data-filter="week"] {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(124, 58, 237, 0.1));
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  .filter-btn[data-filter="week"].active {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+  }
+
+  .filter-btn[data-filter="month"] {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  .filter-btn[data-filter="month"].active {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .filter-btn[data-filter="year"] {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .filter-btn[data-filter="year"].active {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  /* Enhanced Status Badges */
+  .status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .status-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.8s;
+  }
+  .status-badge:hover::before {
+    left: 100%;
+  }
+  .status-pending {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+  }
+  .status-pending:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+  }
+  .status-approved,
+  .status-completed,
+  .status-paid {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(21, 128, 61, 0.2));
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+  }
+  .status-approved:hover,
+  .status-completed:hover,
+  .status-paid:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+  }
+  .status-rejected {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.2));
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+  }
+  .status-rejected:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+  }
+
+  /* Action Buttons */
+  .receipt-btn, .download-btn {
+    background: linear-gradient(135deg, rgba(214, 51, 108, 0.1), rgba(190, 24, 93, 0.1));
+    border: 1px solid rgba(214, 51, 108, 0.3);
+    color: #f472b6;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .receipt-btn::before, .download-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+  }
+  .receipt-btn:hover::before, .download-btn:hover::before {
+    left: 100%;
+  }
+  .receipt-btn:hover {
+    background: linear-gradient(135deg, rgba(214, 51, 108, 0.2), rgba(190, 24, 93, 0.2));
+    border-color: rgba(214, 51, 108, 0.5);
+    color: #ff4d94;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(214, 51, 108, 0.3);
+  }
+  .download-btn {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+  }
+  .download-btn:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #34d399;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Other styles */
+  .transaction-table {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    border-radius: 15px;
+    overflow: hidden;
+    border: 1px solid rgba(214, 51, 108, 0.1);
+  }
+  .table-dark th {
+    background: rgba(214, 51, 108, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f1f1f1;
+    font-weight: 600;
+  }
+  .table-dark td {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f1f1f1;
+  }
+  .form-row {
+    margin-bottom: 1rem;
+  }
+  .loading-spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(214, 51, 108, 0.3);
+    border-top: 2px solid #d6336c;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .success-message, .error-message {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .success-message {
+    border-left: 4px solid #10b981;
+  }
+  .error-message {
+    border-left: 4px solid #ef4444;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="text-white mb-4">
+        <i class="fas fa-exchange-alt me-2"></i>
+        Office 1 - Transaction Management
+      </h2>
+
+      <!-- Messages -->
+      <div id="successMessage" class="success-message">
+        <i class="fas fa-check-circle me-2"></i>
+        <span id="successText">Transaction saved successfully!</span>
+      </div>
+      <div id="errorMessage" class="error-message">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span id="errorText">Error saving transaction.</span>
+      </div>
+
+      <!-- Batch Form -->
+      <div class="transaction-form">
+        <h4 class="text-white mb-3"><i class="fas fa-plus-circle me-2"></i>New Batch</h4>
+        <form id="batchForm" method="post">
+          {% csrf_token %}
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-row">
+                <label for="supplier_name" class="form-label">
+                  <i class="fas fa-user"></i>Supplier Name
+                </label>
+                <input type="text" class="form-control" id="supplier_name" name="supplier_name"
+                       placeholder="Enter supplier name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-row">
+                <label for="supplier_phone" class="form-label">
+                  <i class="fas fa-phone"></i>Phone (Optional)
+                </label>
+                <input type="text" class="form-control" id="supplier_phone" name="supplier_phone"
+                       placeholder="e.g. 08012345678">
+              </div>
+            </div>
+          </div>
+
+          <h5 class="text-white mb-3 mt-4"><i class="fas fa-list me-2"></i>Minerals Received</h5>
+          <table class="table table-sm table-dark" id="mineralsTable">
+            <thead>
+              <tr>
+                <th>Mineral</th><th>Grade</th><th>Weight</th><th>Unit</th><th>Negotiated Price</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="mineral-row">
+                <td>
+                  <select name="mineral_type[]" class="form-control mineral-type-select" required>
+                    <option value="">Select Mineral</option>
+                    {% for mineral in mineral_types %}
+                    <option style="background-color: black; color: white;" value="{{ mineral.id }}">{{ mineral.name }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  <select name="grade[]" class="form-control grade-select" required disabled>
+                    <option style="background-color: black; color: white;" value="">Select Grade</option> 
+                  </select>
+                </td>
+                <td>
+                  <input type="number" name="weight[]" class="form-control" step="0.01" min="0.01" required>
+                </td>
+                <td>
+                  <select name="weight_unit[]" class="form-control">
+                    <option style="background-color: black; color: white;" value="kg">kg</option>
+                    <option style="background-color: black; color: white;" value="lb">lb</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="number" name="agreed_payout[]" class="form-control" step="0.01" placeholder="Optional">
+                </td>
+                <td>
+                  <button type="button" class="btn btn-danger btn-sm remove-row">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-outline-light btn-sm mb-3" id="addMineralRow">
+            <i class="fas fa-plus"></i> Add Another Mineral
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Save Batch
+          </button>
+          <div class="loading-spinner" id="loadingSpinner"></div>
+        </form>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-buttons">
+        <h4 class="text-white mb-3"><i class="fas fa-filter me-2"></i>Filter Transactions</h4>
+
+        <!-- Date Range -->
+        <div class="mb-2">
+          <label class="text-white me-2">Date Range:</label>
+          <input type="date" id="dateFrom" value="{{ date_from }}" class="form-control d-inline-block w-auto me-2">
+          <input type="date" id="dateTo" value="{{ date_to }}" class="form-control d-inline-block w-auto me-2">
+          <button id="applyDateFilter" class="filter-btn" style="margin-bottom: 0;">Apply Dates</button>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="mb-2">
+          <label class="text-white me-2">Quick:</label>
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="today">Today</button>
+          <button class="filter-btn" data-filter="week">This Week</button>
+          <button class="filter-btn" data-filter="month">This Month</button>
+          <button class="filter-btn" data-filter="year">This Year</button>
+        </div>
+
+        <!-- Mineral Filter -->
+        <div>
+          <label class="text-white me-2">Mineral:</label>
+          <select id="mineralFilter" class="form-select d-inline-block w-auto">
+            <option style="background-color: black; color: white;" value="">All Minerals</option>
+            {% for mineral in mineral_types %}
+            <option style="background-color: black; color: white;" value="{{ mineral.id }}" {% if mineral.id|stringformat:"s" == mineral_type_id %}selected{% endif %}>
+              {{ mineral.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
+      <div class="transaction-table">
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Supplier</th>
+                <th>Items</th>
+                <th>Value (₦)</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transactionTableBody">
+              {% for batch in batches %}
+              <tr>
+                <td>#{{ batch.batch_no }}</td>
+                <td>{{ batch.supplier_name }}</td>
+                <td>{{ batch.total_items }}</td>
+                <td>{{ batch.total_value|intcomma }}</td>
+                <td>{{ batch.timestamp|date:"M d, Y g:i A" }}</td>
+                <td>
+                  <span class="status-badge status-{{ batch.status }}">
+                    {% if batch.status == 'pending' %}
+                      <i class="fas fa-clock"></i> Pending
+                    {% elif batch.status == 'approved' %}
+                      <i class="fas fa-check"></i> Approved
+                    {% elif batch.status in 'paid,completed' %}
+                      <i class="fas fa-dollar-sign"></i> Paid
+                    {% elif batch.status == 'rejected' %}
+                      <i class="fas fa-times"></i> Rejected
+                    {% endif %}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <a href="/office1/receipt/{{ batch.items.first.id }}/" target="_blank"
+                       class="download-btn">
+                      <i class="fas fa-download"></i> Receipt
+                    </a>
+                    {% if batch.status == 'pending' %}
+                      <button class="receipt-btn" onclick="rejectBatch({{ batch.id }})">
+                        <i class="fas fa-times"></i> Reject
+                      </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="text-center py-4">No batches found</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      {% if batches.has_other_pages %}
+      <nav class="mt-3">
+        <ul class="pagination justify-content-center">
+          {% if batches.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ batches.previous_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&mineral_type={{ mineral_type_id }}&filter={{ request.GET.filter }}">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ batches.number }}</span></li>
+          {% if batches.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ batches.next_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&mineral_type={{ mineral_type_id }}&filter={{ request.GET.filter }}">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// Mineral Grades Mapping
+const mineralGrades = {
+  {% for mineral in mineral_types %}
+  "{{ mineral.id }}": [
+    {% for grade in mineral.grades.all %}
+    {id: {{ grade.id }}, name: "{{ grade.grade_name }}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]{% if not forloop.last %},{% endif %}
+  {% endfor %}
+};
+
+// Dynamic Rows
+document.getElementById('addMineralRow').addEventListener('click', function () {
+  const row = document.createElement('tr');
+  row.className = 'mineral-row';
+  row.innerHTML = document.querySelector('.mineral-row').outerHTML;
+  document.querySelector('#mineralsTable tbody').appendChild(row);
+  setupRow(row);
+});
+
+function setupRow(row) {
+  const mineralSelect = row.querySelector('.mineral-type-select');
+  const gradeSelect = row.querySelector('.grade-select');
+
+  function updateGrades() {
+    gradeSelect.innerHTML = '<option value="">Select Grade</option>';
+    gradeSelect.disabled = true;
+    const grades = mineralGrades[mineralSelect.value] || [];
+    if (grades.length) {
+      gradeSelect.disabled = false;
+      grades.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = g.name;
+        opt.style.backgroundColor = 'black';
+        opt.style.color = 'white'
+        gradeSelect.appendChild(opt);
+      });
+    }
+  }
+
+  mineralSelect.addEventListener('change', updateGrades);
+  updateGrades();
+}
+
+document.querySelectorAll('.mineral-row').forEach(setupRow);
+
+// Apply Date Filter
+document.getElementById('applyDateFilter').addEventListener('click', function () {
+  const url = new URL(window.location);
+  url.searchParams.set('page', '1');
+  url.searchParams.set('date_from', document.getElementById('dateFrom').value);
+  url.searchParams.set('date_to', document.getElementById('dateTo').value);
+  url.searchParams.set('mineral_type', document.getElementById('mineralFilter').value);
+  url.searchParams.delete('filter'); // reset quick filter
+  window.location.href = url.toString();
+});
+
+// Quick Filters (Today, Week, etc.)
+document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const filter = this.getAttribute('data-filter');
+    const url = new URL(window.location);
+    url.searchParams.set('page', '1');
+    url.searchParams.set('filter', filter);
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    url.searchParams.delete('mineral_type');
+    window.location.href = url.toString();
+
+    document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Mineral Filter
+document.getElementById('mineralFilter').addEventListener('change', function () {
+  const url = new URL(window.location);
+  url.searchParams.set('page', '1');
+  url.searchParams.set('mineral_type', this.value);
+  url.searchParams.delete('filter');
+  window.location.href = url.toString();
+});
+
+// Submit Form
+document.getElementById('batchForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const form = this;
+  const formData = new FormData(form);
+  fetch('', {
+    method: 'POST',
+    body: formData,
+    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showSuccess('Batch saved successfully!');
+      setTimeout(() => {
+        window.open(data.receipt_url, '_blank');
+        location.reload();
+      }, 1000);
+    } else {
+      showError(data.error || 'Failed to save');
+    }
+  })
+  .catch(() => showError('Network error'))
+  .finally(() => showLoading(false));
+});
+
+// Reject Batch
+function rejectBatch(id) {
+  if (!confirm("Reject this batch?")) return;
+  fetch(`/office1/transactions/reject/${id}/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showSuccess("Batch rejected.");
+      setTimeout(() => location.reload(), 800);
+    } else {
+      showError(data.error);
+    }
+  });
+}
+
+// UI Helpers
+function showSuccess(msg) {
+  const el = document.getElementById('successMessage');
+  el.style.display = 'block';
+  document.getElementById('successText').textContent = msg;
+  document.getElementById('errorMessage').style.display = 'none';
+}
+function showError(msg) {
+  const el = document.getElementById('errorMessage');
+  el.style.display = 'block';
+  document.getElementById('errorText').textContent = msg;
+  document.getElementById('successMessage').style.display = 'none';
+}
+function showLoading(show) {
+  document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+}
+</script>
+{% endblock content %}
+
+{% block sidebar_nav %}
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office1:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white active" href="{% url 'office1:transactions' %}">
+    <i class="fas fa-exchange-alt me-2"></i>Transactions
+  </a>
+</li>
+{% endblock sidebar_nav %}

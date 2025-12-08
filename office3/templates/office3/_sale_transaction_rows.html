@@ -1,0 +1,77 @@
+<!-- templates/office3/_sale_transaction_rows.html -->
+{% load humanize %}
+
+{% for transaction in page_obj %}
+<tr class="align-middle hover-row" data-id="{{ transaction.id }}">
+  <td class="fw-medium text-white">{{ transaction.reference_number }}</td>
+  <td class="fw-bold text-white">{{ transaction.mineral_type.name }}</td>
+  <td>
+    <span class="badge bg-secondary-subtle text-white px-2 py-1">
+      {{ transaction.grade.grade_name|title }}
+    </span>
+  </td>
+  <td class="text-white">{{ transaction.buyer_name|truncatechars:20 }}</td>
+  <td class="text-end">
+    <span class="text-white">{{ transaction.quantity|floatformat:2 }}</span>
+    <small class="text-muted ms-1">{{ transaction.quantity_unit }}</small>
+  </td>
+  <td class="text-end fw-medium text-white">
+    ₦{{ transaction.total_price|floatformat:2|intcomma }}
+  </td>
+  <td>
+    <small class="text-white">{{ transaction.sale_date|date:"Y-m-d" }}</small><br>
+    <small class="text-white-50">{{ transaction.sale_date|date:"H:i" }}</small>
+  </td>
+  <td>
+    <span class="
+        badge text-capitalize
+        {% if transaction.status == 'pending' %}
+          bg-warning-subtle text-warning
+        {% elif transaction.status == 'approved' %}
+          bg-info-subtle text-info
+        {% elif transaction.status == 'completed' %}
+          bg-success-subtle text-success
+        {% elif transaction.status == 'rejected' %}
+          bg-secondary-subtle text-secondary
+        {% else %}
+          bg-light text-dark
+        {% endif %}
+        px-2 py-1 status-badge" style="font-size: 0.85rem;" data-status="{{ transaction.status }}">
+      <i class="fas fa-circle fa-xs me-1"></i>
+      {{ transaction.get_status_display }}
+    </span>
+  </td>
+  <td class="text-center">
+    <div class="d-flex gap-1 justify-content-center">
+      <!-- View Button -->
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-light view-btn"
+        data-id="{{ transaction.id }}"
+        data-reference="{{ transaction.reference_number }}"
+        title="View transaction details">
+        <i class="fas fa-eye fa-sm"></i>
+      </button>
+
+      <!-- Approve Button (only for pending) -->
+      {% if transaction.status == 'pending' %}
+        <button
+          type="button"
+          class="btn btn-sm btn-success approve-btn"
+          data-id="{{ transaction.id }}"
+          title="Approve this transaction">
+          <i class="fas fa-check fa-sm"></i>
+        </button>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="9" class="text-center py-5">
+    <i class="fas fa-search fa-2x text-muted mb-3" style="opacity: 0.6;"></i>
+    <p class="text-muted mb-0">No sales transactions match your criteria.</p>
+    <small class="text-white-50">Try adjusting your filters.</small>
+  </td>
+</tr>
+{% endfor %}

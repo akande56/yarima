@@ -1,0 +1,59 @@
+{% load i18n %}
+
+{% if page_obj.has_other_pages %}
+<div class="pagination justify-content-center mt-3">
+    <nav aria-label="Pagination">
+        <ul class="pagination mb-0">
+
+            <!-- Previous Page -->
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                <a class="page-link bg-dark text-white border-secondary"
+                   href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+                   aria-label="{% trans 'Previous' %}"
+                   {% if not page_obj.has_previous %}tabindex="-1" aria-disabled="true"{% endif %}>
+                    <span aria-hidden="true">&laquo;</span>
+                    <span class="visually-hidden">{% trans 'Previous' %}</span>
+                </a>
+            </li>
+
+            <!-- Page Numbers -->
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <!-- Current Page -->
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link bg-gradient-primary text-white border-primary">
+                            {{ num }}
+                            <span class="visually-hidden">(current)</span>
+                        </span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' or num == 1 or num == page_obj.paginator.num_pages %}
+                    <!-- Visible Pages (current ±2, plus first and last) -->
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-white border-secondary"
+                           href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">
+                            {{ num }}
+                        </a>
+                    </li>
+                {% elif num == page_obj.number|add:'-4' or num == page_obj.number|add:'4' %}
+                    <!-- Ellipsis as links to jump -->
+                    <li class="page-item disabled">
+                        <span class="page-link bg-dark text-muted border-secondary">…</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Next Page -->
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                <a class="page-link bg-dark text-white border-secondary"
+                   href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+                   aria-label="{% trans 'Next' %}"
+                   {% if not page_obj.has_next %}tabindex="-1" aria-disabled="true"{% endif %}>
+                    <span aria-hidden="true">&raquo;</span>
+                    <span class="visually-hidden">{% trans 'Next' %}</span>
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+</div>
+{% endif %}

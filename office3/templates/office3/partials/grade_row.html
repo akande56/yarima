@@ -1,0 +1,22 @@
+<!-- office3/templates/office3/partials/grade_row.html -->
+<tr id="grade-row-{{ grade.id }}">
+  <td>{{ grade.grade_name }}</td>
+  <td>₦{{ grade.price_per_pound|floatformat:2 }}</td>
+  <td>₦{{ grade.price_per_kg|floatformat:2 }}</td>
+  <td>
+    <div class="d-flex gap-1">
+      <button class="btn btn-warning btn-sm edit-grade"
+              data-id="{{ grade.id }}"
+              data-mineral="{{ grade.mineral.id }}"
+              data-name="{{ grade.grade_name }}"
+              data-lb="{{ grade.price_per_pound }}"
+              data-kg="{{ grade.price_per_kg }}">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button class="btn btn-danger btn-sm delete-grade"
+              data-id="{{ grade.id }}">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  </td>
+</tr>

@@ -1,0 +1,790 @@
+<!-- templates/office4/transaction_list.html -->
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Mineral Transactions | Office 4{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Style for date inputs */
+  #dateFrom, #dateTo {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-color: #444 !important;
+  }
+
+  /* Focus styling */
+  .form-control:focus {
+    background-color: #000 !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.25rem rgba(214, 51, 108, 0.25) !important;
+  }
+
+  /* Badge colors based on status */
+  .bg-pending { background-color: #ffc107; }
+  .bg-approved { background-color: #198754; }
+  .bg-paid { background-color: #0d6efd; }
+  .bg-completed { background-color: #6f42c1; }
+  .bg-rejected { background-color: #dc3545; }
+
+  .badge {
+    font-size: 0.8rem;
+    padding: 0.5em 0.7em;
+  }
+
+  /* Handshake icon styling for negotiated */
+  .negotiated-indicator {
+    color: #fbbf24;
+    font-size: 0.9rem;
+    margin-left: 0.35rem;
+  }
+
+  /* Label styling */
+  .form-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+  /* Glass container */
+  .glass-container {
+    background: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(214, 51, 108, 0.3);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Nested table for items */
+  .nested-table {
+    margin: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .nested-table th, .nested-table td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    color: #fff;
+  }
+  .nested-table th {
+    background: rgba(214, 51, 108, 0.15);
+    color: #fff;
+  }
+
+  /* Hover effect on table rows */
+  .table-hover tbody tr:hover {
+    background-color: rgba(214, 51, 108, 0.08) !important;
+  }
+  
+
+  /* Prevent layout shift in empty states */
+  .empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #888 ;
+  }
+
+  /* Loading spinner */
+  .btn-loading .spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Date input wrapper */
+  .date-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+
+  .date-input {
+    padding-right: 2.5rem !important;
+    background-color: #000 !important;
+    color: #fff !important;
+    border-color: #444 !important;
+  }
+
+  .date-input:focus {
+    background-color: #000 !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.25rem rgba(214, 51, 108, 0.25) !important;
+  }
+
+  /* Calendar icon inside input */
+  .date-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #f8f9fa;
+    opacity: 0.7;
+    font-size: 0.9rem;
+    pointer-events: none; /* So it doesn't block input focus */
+    z-index: 5;
+  }
+
+  /* Make icon clickable without blocking input */
+  .date-input-wrapper {
+    cursor: pointer;
+  }
+
+  .date-input-wrapper .date-icon {
+    pointer-events: auto; /* Only icon can be clicked */
+  }
+
+  /* Hover effect */
+  .date-input-wrapper:hover .date-icon {
+    opacity: 0.9;
+  }
+
+  /* Ensure icon is visible in dark mode */
+  .date-icon {
+    filter: brightness(1.2);
+  }
+</style>
+{% endblock extra_css %}
+
+{% block bodyclass %}bg-dark{% endblock bodyclass %}
+
+{% block sidebar_nav %}
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office4:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+  </a>
+</li>
+
+<li class="nav-item">
+  <a class="nav-link text-white active" href="{% url 'office4:transaction_list'  %}">
+    <i class="fas fa-chart-bar me-2"></i>Mineral Transactions
+  </a>
+</li>
+
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office4:sale_transaction_list' %}">
+    <i class="fas fa-exchange-alt me-2"></i>Sale Transactions
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office4:invoice_list' %}">
+    <i class="fas fa-file-invoice-dollar me-2"></i>Expenses Invoice
+  </a>
+</li>
+{% endblock sidebar_nav %}
+
+{% block main %}
+<div class="container-fluid py-4">
+  <!-- Page Title -->
+  <h2 class="text-white mb-4 text-center">Mineral Intake Batches</h2>
+
+  <!-- KPI Summary Cards -->
+  <div class="row mb-4 justify-content-center">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="glass-container p-3 text-center">
+        <h5 class="text-white mb-1">{{ total_kg|intcomma }} kg</h5>
+        <small class="text-muted">Kilograms Taken</small>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="glass-container p-3 text-center">
+        <h5 class="text-white mb-1">{{ total_lb|intcomma }} lb</h5>
+        <small class="text-muted">Pounds Taken</small>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="glass-container p-3 text-center">
+        <h5 class="text-white mb-1">₦{{ total_value|floatformat:2|intcomma }}</h5>
+        <small class="text-muted">Total Value</small>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="glass-container p-3 text-center">
+        <h5 class="text-white mb-1">{{ total_transactions|intcomma }}</h5>
+        <small class="text-muted">Batches Processed</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Export -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <form method="GET" id="filterForm" class="d-flex flex-wrap gap-2">
+  <!-- Date From -->
+<div>
+  <label for="dateFrom" class="form-label text-white small mb-1">From</label>
+  <div class="date-input-wrapper">
+    <input
+      type="date"
+      name="date_from"
+      id="dateFrom"
+      class="form-control bg-dark text-light date-input"
+      value="{{ date_from }}"
+      autocomplete="off"
+    >
+    <i class="fas fa-calendar-alt date-icon" onclick="document.getElementById('dateFrom').showPicker()"></i>
+  </div>
+</div>
+
+<!-- Date To -->
+<div>
+  <label for="dateTo" class="form-label text-white small mb-1">To</label>
+  <div class="date-input-wrapper">
+    <input
+      type="date"
+      name="date_to"
+      id="dateTo"
+      class="form-control bg-dark text-light date-input"
+      value="{{ date_to }}"
+      autocomplete="off"
+    >
+    <i class="fas fa-calendar-alt date-icon" onclick="document.getElementById('dateTo').showPicker()"></i>
+  </div>
+</div>
+
+  <!-- Mineral Type -->
+  <div>
+    <label for="mineralType" class="form-label text-white small mb-1">Mineral</label>
+    <select
+      name="mineral_type"
+      id="mineralType"
+      class="form-select bg-dark text-light"
+    >
+      <option value="">All Minerals</option>
+      {% for mineral in mineral_types %}
+        <option value="{{ mineral.id }}" {% if mineral.id|stringformat:"s" == mineral_type_id %}selected{% endif %}>
+          {{ mineral.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Apply Filter -->
+  <button type="submit" class="btn btn-primary align-self-end">
+    <i class="fas fa-filter me-1"></i> Apply
+  </button>
+
+  <!-- Clear Filters -->
+  <button type="button" id="clearFilters" class="btn btn-outline-secondary align-self-end">
+    <i class="fas fa-times me-1"></i> Clear
+  </button>
+</form>
+
+    <a href="#" id="exportBtn" class="btn btn-outline-primary align-self-end">
+      <i class="fas fa-download me-1"></i> Export to Excel
+    </a>
+  </div>
+
+  <!-- Messages -->
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Batches Table -->
+  <div class="glass-container p-0 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background: rgba(214, 51, 108, 0.1);">
+          <tr class="text-white">
+            <th>Batch No.</th>
+            <th>Supplier</th>
+            <th>Weight</th>
+            <th>Items</th>
+            <th>Status</th>
+            <th>Date & Time</th>
+            <th>Total Value (₦)</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if batches %}
+            {% for batch in batches %}
+              <tr>
+                <td class="text-white"><strong>{{ batch.batch_no }}</strong></td>
+                <td class="text-white">{{ batch.supplier_name }}</td>
+                <td>
+                  <strong class="text-white">{{ batch.total_original_kg|floatformat:2|intcomma }} kg</strong><br>
+                  <small class="text-white">({{ batch.total_original_lb|floatformat:2|intcomma }} lb)</small>
+                </td>
+                <td class="text-white">{{ batch.total_items|intcomma }}</td>
+                <td>
+                  <span class="badge bg-{{ batch.status }} text-white px-2 py-1 rounded-pill">
+                    {{ batch.get_status_display }}
+                  </span>
+                </td>
+                <td class="text-white">{{ batch.timestamp|date:"Y-m-d H:i" }}</td>
+                <td>
+                  <span class="fw-bold text-success">₦{{ batch.total_value|floatformat:2|intcomma }}</span>
+                    {% if batch.has_negotiated_items %}
+                      <i class="fas fa-handshake negotiated-indicator" title="Negotiated pricing used for one or more items"></i>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                  <button
+                    class="btn btn-sm btn-outline-light"
+                    data-bs-toggle="modal"
+                    data-bs-target="#batchModal"
+                    data-batch='{
+                      "id": "{{ batch.id }}",
+                      "batch_no": "{{ batch.batch_no }}",
+                      "supplier_name": "{{ batch.supplier_name|escapejs }}",
+                      "supplier_phone": "{{ batch.supplier_phone|default:"Not provided"|escapejs }}",
+                      "timestamp": "{{ batch.timestamp|date:"Y-m-d H:i:s" }}",
+                      "status": "{{ batch.get_status_display|escapejs }}",
+                      "recorded_by": "{{ batch.recorded_by.name|default:batch.recorded_by.username|escapejs }}",
+                      "total_value": "₦{{ batch.total_value|floatformat:2|intcomma }}",
+                      "total_kg": "{{ batch.total_original_kg|floatformat:2|intcomma }}",
+                      "total_lb": "{{ batch.total_original_lb|floatformat:2|intcomma }}",
+                      "notes": "{{ batch.notes|default:""|escapejs }}",
+                      "approved_by": "{{ batch.approved_by.name|default:"none"|escapejs }}",
+                      "paid_at": {% if batch.paid_at %}true{% else %}false{% endif %},
+                      "paid_at_date": "{{ batch.paid_at|date:"Y-m-d"|default:"" }}",
+                      "paid_at_time": "{{ batch.paid_at|date:"H:i"|default:"" }}",
+                      "paid_by": "{{ batch.paid_by.name|default:"none"|escapejs }}",
+                      "items": [
+                        {% for item in batch.items.all %}
+                          {
+                            "mineral": "{{ item.mineral_type.name|escapejs }}",
+                            "grade": "{{ item.grade.grade_name|escapejs }}",
+                            "weight": "{{ item.weight|floatformat:2|intcomma }}",
+                            "unit": "{{ item.get_weight_unit_display }}",
+                            "price_per_kg": {% if item.grade.price_per_kg %}"₦{{ item.grade.price_per_kg|floatformat:2|intcomma }}"{% else %}null{% endif %},
+                            "price_per_pound": {% if item.grade.price_per_pound %}"₦{{ item.grade.price_per_pound|floatformat:2|intcomma }}"{% else %}null{% endif %},
+                            "agreed_payout": {% if item.agreed_payout %}"₦{{ item.agreed_payout|floatformat:2|intcomma }}"{% else %}null{% endif %},
+                            "total_value": "₦{{ item.total_value|floatformat:2|intcomma }}"
+                          }{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                      ],
+                      "payments": [
+                        {% for payment in batch.payments.all %}
+                          {
+                            "method": "{{ payment.get_method_display|escapejs }}",
+                            "amount": "₦{{ payment.amount|floatformat:2|intcomma }}",
+                            "account": "{{ payment.payout_account_number|default:""|escapejs }}",
+                            "name": "{{ payment.payout_account_name|default:""|escapejs }}",
+                            "ref": "{{ payment.reference|default:""|escapejs }}"
+                          }{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                      ],
+                      "status_logs": [
+                        {% for log in batch.status_logs.all %}
+                          {
+                            "status": "{{ log.get_status_display|escapejs }}",
+                            "updated_by": "{{ log.updated_by.name|default:log.updated_by.username|escapejs }}",
+                            "updated_at": "{{ log.updated_at|date:"Y-m-d H:i" }}"
+                          }{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                      ]
+                    }'>
+                    View
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-5 empty-state">
+                <i class="fas fa-inbox fa-3x mb-3" style="opacity:0.4;"></i><br>
+                <strong>No batches found</strong><br>
+                {% if date_from or date_to %}
+                  No batches match the selected date range.
+                {% else %}
+                  No batches have been recorded yet.
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if batches.has_other_pages %}
+      <div class="d-flex justify-content-center mt-4">
+        <nav>
+          <ul class="pagination">
+            {% if batches.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?date_from={{ date_from }}&date_to={{ date_to }}&page={{ batches.previous_page_number }}">Previous</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ batches.number|intcomma }} of {{ batches.paginator.num_pages|intcomma }}
+              </span>
+            </li>
+
+            {% if batches.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?date_from={{ date_from }}&date_to={{ date_to }}&page={{ batches.next_page_number }}">Next</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock main %}
+
+{% block modal %}
+<!-- Batch Detail Modal -->
+<div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content glass-container border-pink shadow-lg">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white" id="batchModalLabel">
+          <i class="fas fa-box-open me-2"></i>Batch: <span id="modal-batch-no">—</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Basic Info -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Supplier:</strong>
+              <span class="text-white" id="modal-supplier">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Phone:</strong>
+              <span class="text-white" id="modal-phone">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Total Weight:</strong>
+              <span class="text-white" id="modal-total-weight">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Items:</strong>
+              <span class="text-white" id="modal-total-items">—</span>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Status:</strong>
+              <span class="text-white" id="modal-status">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Received:</strong>
+              <span class="text-white" id="modal-timestamp">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Recorded By:</strong>
+              <span class="text-white" id="modal-recorded-by">—</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <strong class="text-muted">Total Value:</strong>
+              <span class="text-white fw-bold" id="modal-total-value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="mb-4">
+          <h6 class="text-white mb-3"><i class="fas fa-list me-2"></i>Items in Batch</h6>
+          <table class="table nested-table">
+            <thead>
+              <tr>
+                <th>Mineral</th>
+                <th>Grade</th>
+                <th>Weight</th>
+                <th>Unit</th>
+                <th>Price per Unit</th>
+                <th>Total Value</th>
+              </tr>
+            </thead>
+            <tbody id="modal-items"></tbody>
+          </table>
+        </div>
+
+        <!-- Payments -->
+        <div class="mb-4" id="modal-payments-section" style="display:none;">
+          <h6 class="text-white mb-3"><i class="fas fa-money-bill-wave me-2"></i>Payment Breakdown</h6>
+          <table class="table nested-table">
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Amount (₦)</th>
+                <th>Account/Wallet</th>
+                <th>Name</th>
+                <th>Reference</th>
+              </tr>
+            </thead>
+            <tbody id="modal-payments"></tbody>
+          </table>
+        </div>
+
+        <!-- Status Logs -->
+        <div class="mb-4">
+          <h6 class="text-white mb-3"><i class="fas fa-history me-2"></i>Status History</h6>
+          <ul class="list-group" id="modal-status-logs">
+            <!-- Filled by JS -->
+          </ul>
+        </div>
+
+        <!-- Notes -->
+        <div class="col-12 mb-4">
+          <div class="border-top pt-3">
+            <strong class="text-muted">Internal Notes:</strong>
+            <p class="text-white mt-1" id="modal-notes">—</p>
+          </div>
+        </div>
+
+        <!-- Approval & Payment Details -->
+        <div class="card bg-dark text-white border-pink shadow-sm">
+          <div class="card-header bg-gradient-pink text-white">
+            <h6 class="mb-0"><i class="fas fa-check-circle me-2"></i>Approval & Payment</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="d-flex justify-content-between mb-2">
+                  <strong class="text-muted">Approved By:</strong>
+                  <span class="text-white" id="modal-approved-by">—</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex justify-content-between mb-2">
+                  <strong class="text-muted">Paid At:</strong>
+                  <span class="text-white" id="modal-paid-at">—</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <strong class="text-muted">Paid By:</strong>
+                  <span class="text-white" id="modal-paid-by">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock modal %}
+
+{% block inline_javascript %}
+{{ block.super }}
+
+<script>
+function showAlert(message, type = 'info') {
+  const existing = document.querySelectorAll('.export-alert');
+  existing.forEach(el => el.remove());
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type} alert-dismissible fade show export-alert`;
+  alert.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  const container = document.querySelector('.container-fluid');
+  if (container) container.insertAdjacentElement('afterbegin', alert);
+}
+</script>
+
+<!-- Export Button Handler -->
+<script>
+document.getElementById('exportBtn').addEventListener('click', function(e) {
+  e.preventDefault();
+  const dateFrom = document.getElementById('dateFrom')?.value || '';
+  const dateTo = document.getElementById('dateTo')?.value || '';
+  const mineralType = document.getElementById('mineralType')?.value || '';
+
+  const url = new URL('{% url "office4:transaction_export" %}', window.location.origin);
+  if (dateFrom) url.searchParams.append('date_from', dateFrom);
+  if (dateTo) url.searchParams.append('date_to', dateTo);
+  if (mineralType) url.searchParams.append('mineral_type', mineralType);
+
+
+  const btn = this;
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> Exporting...';
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(response => {
+      if (response.headers.get('Content-Type')?.includes('application/vnd.openxmlformats')) {
+        return response.blob().then(blob => {
+          const a = document.createElement('a');
+          const disp = response.headers.get('Content-Disposition');
+          const filename = disp?.match(/filename="?([^"]+)"?/)?.[1] || `mineral_batches_${new Date().toISOString().slice(0,10)}.xlsx`;
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+          showAlert('✅ Export completed successfully!', 'success');
+        });
+      } else {
+        return response.json().then(data => { throw new Error(data.error || 'Export failed'); });
+      }
+    })
+    .catch(err => {
+      const msg = err.message.includes('failed to fetch')
+        ? 'Network error. Check connection.'
+        : err.message;
+      showAlert('❌ Export failed: ' + msg, 'danger');
+    })
+    .finally(() => {
+      btn.innerHTML = origHTML;
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    });
+});
+</script>
+
+<!-- Date Filter & Clear -->
+<script>
+document.getElementById('dateFrom').addEventListener('change', () => document.getElementById('filterForm').submit());
+document.getElementById('dateTo').addEventListener('change', () => document.getElementById('filterForm').submit());
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  document.getElementById('mineralType').value = '';
+  document.getElementById('filterForm').submit();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  const from = document.getElementById('dateFrom');
+  const to = document.getElementById('dateTo');
+  if (!from.value && !to.value) {
+    from.value = today;
+    to.value = today;
+  }
+});
+</script>
+
+<!-- Batch Modal Handler -->
+<script>
+function initializeBatchModal() {
+  const modal = document.getElementById('batchModal');
+  if (!modal || modal.dataset.initialized === 'true') return;
+
+  modal.addEventListener('show.bs.modal', function(e) {
+    const button = e.relatedTarget;
+    let data;
+    try {
+      data = JSON.parse(button.dataset.batch);
+    } catch (err) {
+      console.error('Failed to parse batch data:', err);
+      return;
+    }
+
+    // Basic info
+    document.getElementById('modal-batch-no').textContent = data.batch_no;
+    document.getElementById('modal-supplier').textContent = data.supplier_name;
+    document.getElementById('modal-phone').textContent = data.supplier_phone;
+    document.getElementById('modal-total-weight').textContent = `${data.total_kg} kg (${data.total_lb} lb)`;
+    document.getElementById('modal-total-items').textContent = data.items.length.toLocaleString();
+    document.getElementById('modal-status').textContent = data.status;
+    document.getElementById('modal-timestamp').textContent = new Date(data.timestamp).toLocaleString();
+    document.getElementById('modal-recorded-by').textContent = data.recorded_by || 'Unknown';
+    document.getElementById('modal-total-value').textContent = data.total_value;
+    document.getElementById('modal-notes').textContent = data.notes || 'No internal notes.';
+    document.getElementById('modal-approved-by').textContent = data.approved_by || '—';
+    document.getElementById('modal-paid-at').textContent = data.paid_at ? `${data.paid_at_date} ${data.paid_at_time}` : '—';
+    document.getElementById('modal-paid-by').textContent = data.paid_by || '—';
+
+    // Items
+    const itemsBody = document.getElementById('modal-items');
+    itemsBody.innerHTML = '';
+    data.items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.mineral}</td>
+        <td>${item.grade}</td>
+        <td>${item.weight}</td>
+        <td>${item.unit}</td>
+        <td>${item.agreed_payout || item.price_per_kg || item.price_per_pound || '—'}</td>
+        <td><strong>${item.total_value}</strong></td>
+      `;
+      itemsBody.appendChild(tr);
+    });
+
+    // Payments
+    const paymentsBody = document.getElementById('modal-payments');
+    const paymentsSection = document.getElementById('modal-payments-section');
+    paymentsBody.innerHTML = '';
+    if (data.payments && data.payments.length > 0) {
+      paymentsSection.style.display = 'block';
+      data.payments.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.method}</td>
+          <td><strong>${p.amount}</strong></td>
+          <td>${p.account || '—'}</td>
+          <td>${p.name || '—'}</td>
+          <td>${p.ref || '—'}</td>
+        `;
+        paymentsBody.appendChild(tr);
+      });
+    } else {
+      paymentsSection.style.display = 'none';
+    }
+
+    // Status Logs
+    const logsList = document.getElementById('modal-status-logs');
+    logsList.innerHTML = '';
+    if (data.status_logs && data.status_logs.length > 0) {
+      data.status_logs.slice().reverse().forEach(log => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-dark text-white border-secondary';
+        li.innerHTML = `
+          <strong>${log.status}</strong> by <em>${log.updated_by}</em>
+          <small class="text-muted float-end">${log.updated_at}</small>
+        `;
+        logsList.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.className = 'list-group-item bg-dark text-muted';
+      li.textContent = 'No status changes recorded.';
+      logsList.appendChild(li);
+    }
+
+    // Update modal title
+    document.getElementById('batchModalLabel').innerHTML = `
+      <i class="fas fa-box-open me-2"></i>Batch: <span id="modal-batch-no">${data.batch_no}</span>
+    `;
+  });
+
+  modal.dataset.initialized = 'true';
+}
+
+// Wait for DOM and Bootstrap
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof bootstrap !== 'undefined') {
+    initializeBatchModal();
+  } else {
+    const check = () => {
+      if (typeof bootstrap !== 'undefined') initializeBatchModal();
+      else setTimeout(check, 100);
+    };
+    check();
+  }
+});
+</script>
+{% endblock inline_javascript %}

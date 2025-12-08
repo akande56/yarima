@@ -1,0 +1,979 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% block title %}Mineral Management - Office 3{% endblock title %}
+
+{% block extra_css %}
+{% comment %} <link rel="stylesheet" href="{% static 'css/office3.css' %}" /> {% endcomment %}
+<style>
+  /* Tab Navigation Styling */
+  .nav-tabs .nav-link {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(214, 51, 108, 0.3);
+    color: #f1f1f1;
+    border-radius: 12px 12px 0 0;
+    margin-right: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  .nav-tabs .nav-link:hover {
+    background: rgba(214, 51, 108, 0.2);
+    border-color: #d6336c;
+    color: #ff4d94;
+  }
+  .nav-tabs .nav-link.active {
+    background: linear-gradient(135deg, rgba(214, 51, 108, 0.3), rgba(255, 77, 148, 0.2));
+    border-color: #d6336c;
+    color: #ff4d94;
+  }
+  .tab-content {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    border-radius: 0 12px 12px 12px;
+    padding: 2rem;
+    border: 1px solid rgba(214, 51, 108, 0.2);
+  }
+
+  /* Form styling improvements */
+  .form-floating label {
+    color: rgba(241, 241, 241, 0.8) !important;
+  }
+  .form-floating > .form-control:focus ~ label,
+  .form-floating > .form-control:not(:placeholder-shown) ~ label {
+    color: #d6336c !important;
+  }
+
+  /* Card styling */
+  .mineral-card, .grade-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(214, 51, 108, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+  }
+  .mineral-card:hover, .grade-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #d6336c;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(214, 51, 108, 0.2);
+  }
+
+  /* Action buttons */
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+  .btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+  }
+
+  /* Enhanced select styling for modals */
+  .modal select.form-control,
+  .modal select.form-select {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(214, 51, 108, 0.4) !important;
+    border-radius: 12px !important;
+  }
+  .modal select option {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    padding: 12px 16px !important;
+  }
+
+  /* Price display styling */
+  .price-info {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .price-badge {
+    background: rgba(214, 51, 108, 0.2);
+    border: 1px solid rgba(214, 51, 108, 0.4);
+    border-radius: 20px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+    color: #ff4d94;
+    font-weight: 500;
+  }
+
+  /* Empty state styling */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #888;
+  }
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: rgba(214, 51, 108, 0.3);
+  }
+
+  /* Search and filter styling */
+  .search-filter-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(214, 51, 108, 0.1);
+  }
+
+  /* Validation warning */
+  .price-warning {
+    display: none;
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid #ffc107;
+    color: #ffc107;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    font-size: 0.9em;
+  }
+
+  .invalid-submit {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block sidebar_nav %}
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office3:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i>Dashboard 
+  </a>
+</li>
+
+<li class="nav-item">
+  <a class="nav-link text-white active" href="{% url 'office3:manage_minerals' %}">
+    <i class="fas fa-gem me-2"></i>Mineral Management
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office3:transaction_list'  %}">
+    <i class="fas fa-chart-bar me-2"></i>Mineral Transactions
+  </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office3:sale_transaction_create' %}">
+        <i class="fas fa-plus-circle me-2"></i>Mineral Sale
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office3:sale_transaction_list' %}">
+        <i class="fas fa-exchange-alt me-2"></i>Sales Transactions
+    </a>
+</li>
+{% endblock sidebar_nav %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="text-white mb-0">
+        <i class="fas fa-gem me-2"></i>Mineral Management
+      </h2>
+      <div class="d-flex gap-2">
+        <div class="badge bg-primary fs-6" id="mineralCount">0 Minerals</div>
+        <div class="badge bg-secondary fs-6" id="gradeCount">0 Grades</div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs" id="mineralTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="minerals-tab" data-bs-toggle="tab" data-bs-target="#minerals" type="button" role="tab" aria-controls="minerals" aria-selected="true">
+          <i class="fas fa-gem me-2"></i>Minerals
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="grades-tab" data-bs-toggle="tab" data-bs-target="#grades" type="button" role="tab" aria-controls="grades" aria-selected="false">
+          <i class="fas fa-award me-2"></i>Grades
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="mineralTabContent">
+      <!-- Minerals Tab -->
+      <div class="tab-pane fade show active" id="minerals" role="tabpanel" aria-labelledby="minerals-tab">
+        <!-- Search and Add Section -->
+        <div class="search-filter-section">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="mineralSearch" placeholder="">
+                <label for="mineralSearch"></label>
+              </div>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addMineralModal">
+                <i class="fas fa-plus me-2"></i>Add Mineral
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="refreshMinerals">
+                <i class="fas fa-refresh me-2"></i>Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="mineralLoading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-white mt-2">Loading minerals...</p>
+        </div>
+
+        <!-- Minerals List -->
+        <div id="mineralsList" class="row g-3"></div>
+
+        <!-- Empty State -->
+        <div id="mineralsEmpty" class="empty-state d-none">
+          <i class="fas fa-gem"></i>
+          <h5>No Minerals Found</h5>
+          <p>Get started by adding your first mineral type.</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMineralModal">
+            <i class="fas fa-plus me-2"></i>Add First Mineral
+          </button>
+        </div>
+      </div>
+
+      <!-- Grades Tab -->
+      <div class="tab-pane fade" id="grades" role="tabpanel" aria-labelledby="grades-tab">
+        <!-- Search and Add Section -->
+        <div class="search-filter-section">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="gradeSearch" placeholder="">
+                <label for="gradeSearch"></label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <select class="form-select" id="mineralFilter" aria-label="Filter by mineral">
+                  <option value="">All Minerals</option>
+                </select>
+                <label for="mineralFilter">Filter by Mineral</label>
+              </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addGradeModal">
+                <i class="fas fa-plus me-2"></i>Add Grade
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="refreshGrades">
+                <i class="fas fa-refresh me-2"></i>Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="gradeLoading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-white mt-2">Loading grades...</p>
+        </div>
+
+        <!-- Grades List -->
+        <div id="gradesList" class="row g-3"></div>
+
+        <!-- Empty State -->
+        <div id="gradesEmpty" class="empty-state d-none">
+          <i class="fas fa-award"></i>
+          <h5>No Grades Found</h5>
+          <p>Add mineral grades to define pricing and quality levels.</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGradeModal">
+            <i class="fas fa-plus me-2"></i>Add First Grade
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block modal %}
+<!-- Add Mineral Modal -->
+<div class="modal fade" id="addMineralModal" tabindex="-1" aria-labelledby="addMineralModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(214, 51, 108, 0.3);">
+      <div class="modal-header border-bottom border-secondary">
+        <h5 class="modal-title text-white" id="addMineralModalLabel">
+          <i class="fas fa-gem me-2"></i>Add New Mineral
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="addMineralForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="form-floating">
+              <input type="text" class="form-control" id="mineralName" name="name" placeholder="" required>
+              <label for="mineralName">Mineral Name</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-floating">
+              <textarea class="form-control" id="mineralDescription" name="description" placeholder="" style="height: 100px;"></textarea>
+              <label for="mineralDescription">Description (Optional)</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top border-secondary">
+          <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Mineral
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Mineral Modal -->
+<div class="modal fade" id="editMineralModal" tabindex="-1" aria-labelledby="editMineralModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(214, 51, 108, 0.3);">
+      <div class="modal-header border-bottom border-secondary">
+        <h5 class="modal-title text-white" id="editMineralModalLabel">
+          <i class="fas fa-edit me-2"></i>Edit Mineral
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editMineralForm">
+        {% csrf_token %}
+        <input type="hidden" id="editMineralId" name="mineral_id">
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="form-floating">
+              <input type="text" class="form-control" id="editMineralName" name="name" placeholder="" required>
+              <label for="editMineralName">Mineral Name</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-floating">
+              <textarea class="form-control" id="editMineralDescription" name="description" placeholder="" style="height: 100px;"></textarea>
+              <label for="editMineralDescription">Description (Optional)</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top border-secondary">
+          <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Grade Modal -->
+<div class="modal fade" id="addGradeModal" tabindex="-1" aria-labelledby="addGradeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(214, 51, 108, 0.3);">
+      <div class="modal-header border-bottom border-secondary">
+        <h5 class="modal-title text-white" id="addGradeModalLabel">
+          <i class="fas fa-award me-2"></i>Add New Grade
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="addGradeForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-floating">
+                <select class="form-select" id="gradeMineralSelect" name="mineral" required>
+                  <option value="">Select Mineral</option>
+                </select>
+                <label for="gradeMineralSelect">Mineral</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="gradeName" name="grade_name" placeholder="" required>
+                <label for="gradeName">Grade Name</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="number" class="form-control" id="pricePound" name="price_per_pound" placeholder="" step="0.01" min="0">
+                <label for="pricePound">Price per Pound (₦)</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="number" class="form-control" id="priceKg" name="price_per_kg" placeholder="" step="0.01" min="0">
+                <label for="priceKg">Price per Kg (₦)</label>
+              </div>
+            </div>
+          </div>
+          <div class="price-warning" id="priceWarning">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            You can only set one price: per kg OR per pound.
+          </div>
+        </div>
+        <div class="modal-footer border-top border-secondary">
+          <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" id="addGradeSubmit">
+            <i class="fas fa-plus me-2"></i>Add Grade
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Grade Modal -->
+<div class="modal fade" id="editGradeModal" tabindex="-1" aria-labelledby="editGradeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(214, 51, 108, 0.3);">
+      <div class="modal-header border-bottom border-secondary">
+        <h5 class="modal-title text-white" id="editGradeModalLabel">
+          <i class="fas fa-edit me-2"></i>Edit Grade
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editGradeForm">
+        {% csrf_token %}
+        <input type="hidden" id="editGradeId" name="grade_id">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-floating">
+                <select class="form-select" id="editGradeMineralSelect" name="mineral" required>
+                  <option value="">Select Mineral</option>
+                </select>
+                <label for="editGradeMineralSelect">Mineral</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="editGradeName" name="grade_name" placeholder="" required>
+                <label for="editGradeName">Grade Name</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="number" class="form-control" id="editPricePound" name="price_per_pound" placeholder="" step="0.01" min="0">
+                <label for="editPricePound">Price per Pound (₦)</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <input type="number" class="form-control" id="editPriceKg" name="price_per_kg" placeholder="" step="0.01" min="0">
+                <label for="editPriceKg">Price per Kg (₦)</label>
+              </div>
+            </div>
+          </div>
+          <div class="price-warning" id="editPriceWarning">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            You can only set one price: per kg OR per pound.
+          </div>
+        </div>
+        <div class="modal-footer border-top border-secondary">
+          <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" id="editGradeSubmit">
+            <i class="fas fa-save me-2"></i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(214, 51, 108, 0.3);">
+      <div class="modal-header border-bottom border-secondary">
+        <h5 class="modal-title text-white" id="deleteModalLabel">
+          <i class="fas fa-trash me-2"></i>Confirm Delete
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Warning!</strong> This action cannot be undone.
+        </div>
+        <p class="text-white" id="deleteMessage"></p>
+      </div>
+      <div class="modal-footer border-top border-secondary">
+        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmDelete">
+          <i class="fas fa-trash me-2"></i>Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock modal %}
+
+{% block javascript %}
+{{ block.super }}
+<script defer src="{% static 'js/office3.js' %}"></script>
+{% endblock javascript %}
+
+{% block inline_javascript %}
+<script>
+// Global variables
+window.minerals = [];
+window.grades = [];
+
+// Utility: Show toast notifications
+function showToast(message, type = 'success') {
+  const toastHtml = `
+    <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>`;
+  const container = document.getElementById('toastContainer') || (() => {
+    const el = document.createElement('div');
+    el.id = 'toastContainer';
+    el.className = 'toast-container position-fixed top-0 end-0 p-3';
+    el.style.zIndex = '9999';
+    document.body.appendChild(el);
+    return el;
+  })();
+  const toast = document.createElement('div');
+  toast.innerHTML = toastHtml;
+  container.appendChild(toast.firstElementChild);
+  new bootstrap.Toast(container.lastElementChild, { delay: 5000 }).show();
+}
+
+// === Price Validation Logic ===
+function setupPriceValidation(pricePoundId, priceKgId, warningId, submitBtnId) {
+  const pricePound = document.getElementById(pricePoundId);
+  const priceKg = document.getElementById(priceKgId);
+  const warning = document.getElementById(warningId);
+  const submitBtn = document.getElementById(submitBtnId);
+
+  function validate() {
+    const hasPound = pricePound && pricePound.value.trim() !== '';
+    const hasKg = priceKg && priceKg.value.trim() !== '';
+
+    if (hasPound && hasKg) {
+      warning.style.display = 'block';
+      if (submitBtn) submitBtn.classList.add('invalid-submit');
+      return false;
+    } else {
+      warning.style.display = 'none';
+      if (submitBtn) submitBtn.classList.remove('invalid-submit');
+      return true;
+    }
+  }
+
+  if (pricePound) pricePound.addEventListener('input', validate);
+  if (priceKg) priceKg.addEventListener('input', validate);
+
+  // Initial check
+  validate();
+
+  // Expose validate function
+  return validate;
+}
+
+// Initialize validation
+let validateAddPrice, validateEditPrice;
+
+document.addEventListener('DOMContentLoaded', () => {
+  validateAddPrice = setupPriceValidation('pricePound', 'priceKg', 'priceWarning', 'addGradeSubmit');
+  validateEditPrice = setupPriceValidation('editPricePound', 'editPriceKg', 'editPriceWarning', 'editGradeSubmit');
+});
+
+// Refresh Minerals
+async function loadMinerals() {
+  try {
+    const res = await fetch('/office3/api/minerals/');
+    if (res.ok) {
+      window.minerals = await res.json();
+      renderMinerals();
+      updateMineralCount();
+      populateMineralSelects();
+    } else {
+      showToast('Failed to load minerals', 'danger');
+    }
+  } catch (e) {
+    showToast('Network error', 'danger');
+  }
+}
+
+// Refresh Grades
+async function loadGrades() {
+  try {
+    const res = await fetch('/office3/api/grades/');
+    if (res.ok) {
+      window.grades = await res.json();
+      renderGrades();
+      updateGradeCount();
+      populateMineralFilter();
+    }
+  } catch (e) {
+    showToast('Failed to load grades', 'danger');
+  }
+}
+
+// Render Minerals
+function renderMinerals() {
+  const query = (document.getElementById('mineralSearch')?.value || '').toLowerCase();
+  const filtered = window.minerals.filter(m => m.name.toLowerCase().includes(query));
+  const list = document.getElementById('mineralsList');
+  const empty = document.getElementById('mineralsEmpty');
+
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('d-none');
+  } else {
+    empty.classList.add('d-none');
+    list.innerHTML = filtered.map(m => `
+      <div class="col-md-6 col-lg-4">
+        <div class="mineral-card">
+          <h5 class="text-white">${escapeHtml(m.name)}</h5>
+          ${m.description ? `<p class="text-muted small">${escapeHtml(m.description)}</p>` : ''}
+          <div class="action-buttons">
+            <button class="btn btn-sm btn-outline-warning" onclick="editMineral(${m.id})">
+              <i class="fas fa-edit me-1"></i>Edit
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteMineral(${m.id})">
+              <i class="fas fa-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Render Grades
+function renderGrades() {
+  const query = (document.getElementById('gradeSearch')?.value || '').toLowerCase();
+  const filter = document.getElementById('mineralFilter')?.value;
+  let filtered = window.grades;
+  if (filter) filtered = filtered.filter(g => g.mineral_id == filter);
+  if (query) filtered = filtered.filter(g => g.grade_name.toLowerCase().includes(query));
+
+  const list = document.getElementById('gradesList');
+  const empty = document.getElementById('gradesEmpty');
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('d-none');
+  } else {
+    empty.classList.add('d-none');
+    list.innerHTML = filtered.map(g => `
+      <div class="col-md-6 col-lg-4">
+        <div class="grade-card">
+          <h5 class="text-white">${escapeHtml(g.grade_name)}</h5>
+          <p class="text-muted small">${escapeHtml(g.mineral_name)}</p>
+          <div class="price-info">
+            ${g.price_per_pound ? `<span class="price-badge">₦${g.price_per_pound}/lb</span>` : ''}
+            ${g.price_per_kg ? `<span class="price-badge">₦${g.price_per_kg}/kg</span>` : ''}
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-sm btn-outline-warning" onclick="editGrade(${g.id})">
+              <i class="fas fa-edit me-1"></i>Edit
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteGrade(${g.id})">
+              <i class="fas fa-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function populateMineralFilter() {
+  const el = document.getElementById('mineralFilter');
+  if (!el) return;
+  el.innerHTML = '<option value="">All Minerals</option>';
+  window.minerals.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    el.appendChild(opt);
+  });
+}
+
+function populateMineralSelects() {
+  ['gradeMineralSelect', 'editGradeMineralSelect'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">Select Mineral</option>';
+    window.minerals.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.name;
+      el.appendChild(opt);
+    });
+  });
+}
+
+function updateMineralCount() {
+  const el = document.getElementById('mineralCount');
+  if (el) el.textContent = `${window.minerals.length} Minerals`;
+}
+
+function updateGradeCount() {
+  const el = document.getElementById('gradeCount');
+  if (el) el.textContent = `${window.grades.length} Grades`;
+}
+
+// Search & Filter
+document.getElementById('mineralSearch')?.addEventListener('input', renderMinerals);
+document.getElementById('gradeSearch')?.addEventListener('input', renderGrades);
+document.getElementById('mineralFilter')?.addEventListener('change', renderGrades);
+
+// Refresh buttons
+document.getElementById('refreshMinerals')?.addEventListener('click', loadMinerals);
+document.getElementById('refreshGrades')?.addEventListener('click', loadGrades);
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', () => {
+  loadMinerals();
+  loadGrades();
+});
+
+// Escape HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Edit/Delete functions (examples)
+function editMineral(id) {
+  const m = window.minerals.find(m => m.id === id);
+  if (m) {
+    document.getElementById('editMineralId').value = m.id;
+    document.getElementById('editMineralName').value = m.name;
+    document.getElementById('editMineralDescription').value = m.description || '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editMineralModal')).show();
+  }
+}
+
+function deleteMineral(id) {
+  const m = window.minerals.find(m => m.id === id);
+  if (m) {
+    document.getElementById('deleteMessage').textContent = `Are you sure you want to delete "${m.name}"?`;
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal'));
+    document.getElementById('confirmDelete').onclick = async () => {
+      try {
+        const res = await fetch(`/office3/api/minerals/${id}/`, {
+          method: 'DELETE',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        if (res.ok) {
+          modal.hide();
+          loadMinerals();
+          showToast('Mineral deleted successfully!', 'success');
+        } else {
+          showToast('Delete failed.', 'danger');
+        }
+      } catch (e) {
+        showToast('Network error.', 'danger');
+      }
+    };
+    modal.show();
+  }
+}
+
+function editGrade(id) {
+  const g = window.grades.find(g => g.id === id);
+  if (g) {
+    document.getElementById('editGradeId').value = g.id;
+    document.getElementById('editGradeMineralSelect').value = g.mineral_id;
+    document.getElementById('editGradeName').value = g.grade_name;
+    document.getElementById('editPricePound').value = g.price_per_pound || '';
+    document.getElementById('editPriceKg').value = g.price_per_kg || '';
+    validateEditPrice();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editGradeModal')).show();
+  }
+}
+
+function deleteGrade(id) {
+  const g = window.grades.find(g => g.id === id);
+  if (g) {
+    document.getElementById('deleteMessage').textContent = `Are you sure you want to delete grade "${g.grade_name}"?`;
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal'));
+    document.getElementById('confirmDelete').onclick = async () => {
+      try {
+        const res = await fetch(`/office3/api/grades/${id}/`, {
+          method: 'DELETE',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        if (res.ok) {
+          modal.hide();
+          loadGrades();
+          showToast('Grade deleted successfully!', 'success');
+        } else {
+          showToast('Delete failed.', 'danger');
+        }
+      } catch (e) {
+        showToast('Network error.', 'danger');
+      }
+    };
+    modal.show();
+  }
+}
+
+// Form Submissions
+document.getElementById('addMineralForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch('/office3/api/minerals/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('addMineralModal')).hide();
+      e.target.reset();
+      loadMinerals();
+      showToast('Mineral added successfully!', 'success');
+    } else {
+      const error = await res.json();
+      showToast(error.error || 'Save failed.', 'danger');
+    }
+  } catch (e) {
+    showToast('Network error.', 'danger');
+  }
+});
+
+document.getElementById('editMineralForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('editMineralId').value;
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch(`/office3/api/minerals/${id}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('editMineralModal')).hide();
+      loadMinerals();
+      showToast('Mineral updated successfully!', 'success');
+    } else {
+      const error = await res.json();
+      showToast(error.error || 'Update failed.', 'danger');
+    }
+  } catch (e) {
+    showToast('Network error.', 'danger');
+  }
+});
+
+document.getElementById('addGradeForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!validateAddPrice()) {
+    showToast('Please set only one price: per kg OR per pound.', 'danger');
+    return;
+  }
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch('/office3/api/grades/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('addGradeModal')).hide();
+      e.target.reset();
+      loadGrades();
+      showToast('Grade added successfully!', 'success');
+    } else {
+      const error = await res.json();
+      showToast(error.error || 'Save failed.', 'danger');
+    }
+  } catch (e) {
+    showToast('Network error.', 'danger');
+  }
+});
+
+document.getElementById('editGradeForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!validateEditPrice()) {
+    showToast('Please set only one price: per kg OR per pound.', 'danger');
+    return;
+  }
+  const id = document.getElementById('editGradeId').value;
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch(`/office3/api/grades/${id}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('editGradeModal')).hide();
+      loadGrades();
+      showToast('Grade updated successfully!', 'success');
+    } else {
+      const error = await res.json();
+      showToast(error.error || 'Update failed.', 'danger');
+    }
+  } catch (e) {
+    showToast('Network error.', 'danger');
+  }
+});
+
+// CSRF Token Helper
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+{% endblock inline_javascript %}

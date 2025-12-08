@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create New Sale Transaction{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Custom dark select styling */
+.custom-dark-select {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #f1f1f1 !important;
+    border-radius: 12px;
+    padding: 0.875rem 1.25rem;
+    font-size: 1rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f1f1f1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1.25rem center;
+    background-repeat: no-repeat;
+    background-size: 14px;
+    padding-right: 2.75rem !important;
+}
+
+.custom-dark-select:focus {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border-color: #d6336c !important;
+    box-shadow: 0 0 0 0.25rem rgba(214, 51, 108, 0.25) !important;
+    color: #f1f1f1 !important;
+}
+
+.custom-dark-select option {
+    background-color: #1a1e24;
+    color: #f1f1f1;
+    padding: 0.5rem;
+}
+
+/* Optional card styling */
+.bg-secondary.bg-opacity-25 {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+</style>
+{% endblock extra_css %}
+
+{% block sidebar_nav %}
+{{ block.super }}
+
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office3:manage_minerals' %}">
+    <i class="fas fa-gem me-2"></i>Mineral Management
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office3:transaction_list'  %}">
+    <i class="fas fa-chart-bar me-2"></i>Mineral Transactions
+  </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white active" href="{% url 'office3:sale_transaction_create' %}">
+        <i class="fas fa-plus-circle me-2"></i>Mineral Sale
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office3:sale_transaction_list' %}">
+        <i class="fas fa-exchange-alt me-2"></i>Sales Transactions
+    </a>
+</li>
+{% endblock sidebar_nav %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="text-white mb-4">Create New Sale Transaction</h2>
+
+    <div class="card bg-dark text-white shadow-sm">
+        <div class="card-body">
+            <form id="createSaleForm">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="mineralType" class="form-label">Mineral Type</label>
+                        <select class="form-control custom-dark-select" id="mineralType" required>
+                            <option value="">Select Mineral Type</option>
+                            {% for mtype in mineral_types %}
+                            <option value="{{ mtype.id }}">{{ mtype.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="grade" class="form-label">Grade</label>
+                        <select class="form-control custom-dark-select" id="grade" disabled required>
+                            <option value="">Select Grade</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="buyerName" class="form-label">Buyer Name</label>
+                    <input type="text" class="form-control" id="buyerName" required placeholder="Enter buyer name">
+                </div>
+
+                <div class="mb-3">
+                    <label for="buyerContact" class="form-label">Buyer Contact</label>
+                    <input type="text" class="form-control" id="buyerContact" placeholder="Phone, email, or address">
+                </div>
+
+                <!-- === Identification Fields (Optional) === -->
+                <div class="card bg-secondary bg-opacity-25 mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-white mb-3">Buyer Identification (Optional)</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="bvn" class="form-label">BVN</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="bvn"
+                                       inputmode="numeric"
+                                       pattern="[0-9]{0,11}"
+                                       maxlength="11"
+                                       placeholder="11-digit number (e.g. 12345678901)">
+                                <div class="form-text text-muted small">Bank Verification Number</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="nin" class="form-label">NIN</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="nin"
+                                       maxlength="20"
+                                       placeholder="National ID Number">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="internationalId" class="form-label">International ID</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="internationalId"
+                                       maxlength="50"
+                                       placeholder="Passport, Voter ID, etc.">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="driverLicense" class="form-label">Driver's License</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="driverLicense"
+                                       maxlength="50"
+                                       placeholder="License number">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" step="0.01" class="form-control" id="quantity" required placeholder="e.g. 150.50">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="unit" class="form-label">Unit</label>
+                        <select class="form-control custom-dark-select" id="unit">
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="lb">Pounds (lb)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="pricePerUnit" class="form-label">Price per Unit (₦)</label>
+                    <input type="number" step="0.01" class="form-control" id="pricePerUnit" required placeholder="e.g. 20000.00">
+                </div>
+
+                <div class="mb-3">
+                    <label for="totalPrice" class="form-label">Total Price (₦)</label>
+                    <input type="number" step="0.01" class="form-control" id="totalPrice" readonly placeholder="Auto-calculated">
+                </div>
+
+                <div class="mb-3">
+                    <label for="saleDate" class="form-label">Sale Date & Time</label>
+                    <input type="datetime-local" class="form-control" id="saleDate" value="{% now 'Y-m-d\TH:i' %}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="notes" rows="3" placeholder="Any additional info..."></textarea>
+                </div>
+
+                <div class="d-flex mt-4">
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fas fa-save me-1"></i> Save Sale
+                    </button>
+                    <a href="{% url 'office3:sale_transaction_list' %}" class="btn btn-secondary ms-3">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascript %}
+{{ block.super }}
+<script defer src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+<script>
+    // Helper: CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Pass mineral → grade mapping from Django
+    const mineralGrades = {
+        {% for mtype in mineral_types %}
+        "{{ mtype.id }}": [
+            {% for grade in mtype.grades.all %}
+            {
+                id: "{{ grade.id|escapejs }}",
+                name: "{{ grade.grade_name|escapejs }}",
+                price_per_kg: {{ grade.price_per_kg|default:0 }},
+                price_per_lb: {{ grade.price_per_pound|default:0 }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    console.log("mineralGrades data:", mineralGrades);
+
+    // === Critical: Add event listener to populate grades ===
+    document.addEventListener('DOMContentLoaded', function () {
+        const mineralTypeSelect = document.getElementById('mineralType');
+        const gradeSelect = document.getElementById('grade');
+
+        if (!mineralTypeSelect || !gradeSelect) {
+            console.error("One or more required elements not found.");
+            return;
+        }
+
+        mineralTypeSelect.addEventListener('change', function () {
+            const mineralId = this.value;
+            // Clear and disable grade dropdown
+            gradeSelect.innerHTML = '<option value="">Select Grade</option>';
+            gradeSelect.disabled = !mineralId;
+
+            if (mineralId && mineralGrades[mineralId]) {
+                mineralGrades[mineralId].forEach(function (grade) {
+                    const option = document.createElement('option');
+                    option.value = grade.id;
+                    option.textContent = grade.name;
+                    gradeSelect.appendChild(option);
+                });
+            }
+        });
+
+        // Trigger change if mineral is already selected (e.g. after back button)
+        if (mineralTypeSelect.value) {
+            mineralTypeSelect.dispatchEvent(new Event('change'));
+        }
+
+        // === Auto-update total price ===
+        function updateTotalPrice() {
+            const qty = parseFloat(document.getElementById('quantity').value) || 0;
+            const price = parseFloat(document.getElementById('pricePerUnit').value) || 0;
+            document.getElementById('totalPrice').value = (qty * price).toFixed(2);
+        }
+
+        document.getElementById('quantity').addEventListener('input', updateTotalPrice);
+        document.getElementById('pricePerUnit').addEventListener('input', updateTotalPrice);
+
+        // === Form submission ===
+        document.getElementById('createSaleForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = {
+                mineral_type_id: document.getElementById('mineralType').value,
+                grade_id: document.getElementById('grade').value,
+                buyer_name: document.getElementById('buyerName').value.trim(),
+                buyer_contact: document.getElementById('buyerContact').value.trim() || '',
+                quantity: document.getElementById('quantity').value,
+                quantity_unit: document.getElementById('unit').value,
+                price_per_unit: document.getElementById('pricePerUnit').value,
+                sale_date: document.getElementById('saleDate').value,
+                notes: document.getElementById('notes').value.trim() || '',
+
+                // Optional IDs
+                bvn: document.getElementById('bvn').value.trim() || '',
+                nin: document.getElementById('nin').value.trim() || '',
+                international_id: document.getElementById('internationalId').value.trim() || '',
+                driver_license: document.getElementById('driverLicense').value.trim() || '',
+            };
+
+            // Validate required
+            if (!formData.mineral_type_id || !formData.grade_id || !formData.buyer_name || !formData.quantity || !formData.price_per_unit) {
+                alert("Please fill all required fields.");
+                return;
+            }
+
+            fetch("{% url 'office3:sale_transaction_create_submit' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken"),
+                },
+                body: JSON.stringify(formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert("Error: " + data.error);
+                }
+            })
+            .catch(err => {
+                console.error("Submission error:", err);
+                alert("An error occurred while submitting the form.");
+            });
+        });
+    });
+</script>
+{% endblock javascript %}

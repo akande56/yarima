@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% load humanize %}
+
+{% block title %}Office 3 Dashboard - Yerima Mining{% endblock title %}
+
+{% block css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'vendor/dataTables.bootstrap5.min.css' %}" />
+<style>
+  /* Dashboard-specific animations and styles */
+  .kpi-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(25px);
+    border-radius: 16px;
+    border: 1px solid rgba(214, 51, 108, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeInUp 0.6s ease forwards;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(214, 51, 108, 0.2);
+    border-color: rgba(214, 51, 108, 0.3);
+  }
+
+  .kpi-card:nth-child(1) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.2s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.3s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.4s; }
+  .kpi-card:nth-child(5) { animation-delay: 0.5s; }
+  .kpi-card:nth-child(6) { animation-delay: 0.6s; }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #d6336c, #ff4d94);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+  }
+
+  .kpi-label {
+    color: rgba(241, 241, 241, 0.8);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .kpi-icon {
+    font-size: 2rem;
+    color: #d6336c;
+    opacity: 0.8;
+  }
+
+  .top-bar {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(214, 51, 108, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .welcome-text {
+    color: #f1f1f1;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .user-role {
+    color: #d6336c;
+    font-weight: 500;
+  }
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .notification-btn {
+    background: rgba(214, 51, 108, 0.1);
+    border: 1px solid rgba(214, 51, 108, 0.3);
+    border-radius: 12px;
+    color: #d6336c;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .notification-btn:hover {
+    background: rgba(214, 51, 108, 0.2);
+    transform: scale(1.05);
+    color: #ff4d94;
+  }
+
+  .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .data-table-container {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(25px);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(214, 51, 108, 0.1);
+    opacity: 0;
+    animation: fadeInUp 0.8s ease 0.5s forwards;
+  }
+
+  .table-dark {
+    background: transparent !important;
+    --bs-table-bg: transparent !important;
+  }
+
+  .table-dark th {
+    background: rgba(214, 51, 108, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #f1f1f1 !important;
+    font-weight: 600 !important;
+  }
+
+  .table-dark td {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #f1f1f1 !important;
+    transition: background-color 0.3s ease;
+  }
+
+  .table-dark tbody tr:hover {
+    background: rgba(214, 51, 108, 0.1) !important;
+  }
+
+  .section-title {
+    color: #f1f1f1;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-title i {
+    color: #d6336c;
+  }
+
+  .assign-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .assign-select {
+    min-width: 120px;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem !important;
+  }
+
+  .assign-btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem !important;
+  }
+
+  /* DataTables custom styling */
+  .dataTables_wrapper .dataTables_length select,
+  .dataTables_wrapper .dataTables_filter input {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    color: #f1f1f1 !important;
+  }
+
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    color: #f1f1f1 !important;
+  }
+
+  .paginate_button {
+    background: rgba(214, 51, 108, 0.1) !important;
+    border: 1px solid rgba(214, 51, 108, 0.3) !important;
+    border-radius: 6px !important;
+    color: #d6336c !important;
+    margin: 0 2px !important;
+  }
+
+  .paginate_button:hover {
+    background: rgba(214, 51, 108, 0.2) !important;
+    color: #ff4d94 !important;
+  }
+
+  .paginate_button.current {
+    background: linear-gradient(135deg, #d6336c, #c42a61) !important;
+    color: white !important;
+  }
+
+  @media (max-width: 768px) {
+    .kpi-value {
+      font-size: 2rem;
+    }
+    
+    .top-bar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .top-bar-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .assign-form {
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .assign-select {
+      min-width: 100px;
+    }
+  }
+</style>
+
+<!-- Dark theme alert styling -->
+<style>
+  .glass-container .alert {
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-weight: 500;
+    color: #f1f1f1;
+  }
+
+  .glass-container .alert a {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  .glass-container .alert .btn-close {
+    filter: invert(1);
+  }
+
+  .glass-container .alert-success { background-color: #198754; }
+  .glass-container .alert-danger { background-color: #dc3545; }
+  .glass-container .alert-warning { background-color: #ffc107; color: #000; }
+  .glass-container .alert-info { background-color: #0dcaf0; color: #fff; }
+</style>
+{% endblock css %}
+
+{% block sidebar_nav %}
+<li class="nav-item">
+  <a class="nav-link text-white active" href="{% url 'office3:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i>Dashboard 
+  </a>
+</li>
+
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office3:manage_minerals' %}">
+    <i class="fas fa-gem me-2"></i>Mineral Management
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office3:transaction_list'  %}">
+    <i class="fas fa-chart-bar me-2"></i>Mineral Transactions
+  </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office3:sale_transaction_create' %}">
+        <i class="fas fa-plus-circle me-2"></i>Mineral Sale
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office3:sale_transaction_list' %}">
+        <i class="fas fa-exchange-alt me-2"></i>Sales Transactions
+    </a>
+</li>
+{% endblock sidebar_nav %}
+
+{% block content %}
+<!-- Top Bar -->
+<div class="top-bar">
+  <div>
+    <h5 class="welcome-text">Welcome, {{ user.name }}</h5>
+    <p class="user-role mb-0">Office 3 Administrator</p>
+  </div>
+  <div class="top-bar-actions">
+    <button class="notification-btn btn" type="button" title="Notifications">
+      <i class="fas fa-bell"></i>
+      <span class="notification-badge">3</span>
+    </button>
+    <a href="{% url 'account_logout' %}" class="btn btn-outline-primary">
+      <i class="fas fa-sign-out-alt me-1"></i>Logout
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ total_transactions|default:"0" }}</h2>
+          <p class="kpi-label mb-0">Total Transactions</p>
+        </div>
+        <i class="fas fa-gem kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+  
+  {% comment %} <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ supplier_count|default:"0" }}</h2>
+          <p class="kpi-label mb-0">Suppliers</p>
+        </div>
+        <i class="fas fa-truck kpi-icon"></i>
+      </div>
+    </div>
+  </div> {% endcomment %}
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ user_count|default:"0" }}</h2>
+          <p class="kpi-label mb-0">Users</p>
+        </div>
+        <i class="fas fa-users kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ total_kg|floatformat:2 }}</h2>
+          <p class="kpi-label mb-0">Total kg (Paid)</p>
+        </div>
+        <i class="fas fa-weight kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ total_lb|floatformat:2 }}</h2>
+          <p class="kpi-label mb-0">Total lb (Paid)</p>
+        </div>
+        <i class="fas fa-weight-hanging kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value" id="formatted-total">₦0</h2>
+          <p class="kpi-label mb-0">Total Value (Paid)</p>
+        </div>
+        <i class="fas fa-money-bill-wave kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's KPIs -->
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ today_total_kg|floatformat:2 }}</h2>
+          <p class="kpi-label mb-0">Today's kg (Paid)</p>
+        </div>
+        <i class="fas fa-calendar-day kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value">{{ today_total_lb|floatformat:2 }}</h2>
+          <p class="kpi-label mb-0">Today's lb (Paid)</p>
+        </div>
+        <i class="fas fa-calendar-check kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6">
+    <div class="kpi-card text-center">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="text-start">
+          <h2 class="kpi-value" id="formatted-today-total">₦0</h2>
+          <p class="kpi-label mb-0">Today's Value (Paid)</p>
+        </div>
+        <i class="fas fa-coins kpi-icon"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Transactions Table -->
+<!-- Recent Transactions Table -->
+<div class="data-table-container">
+  <h4 class="section-title">
+    <i class="fas fa-history"></i>
+    Recent Batches
+  </h4>
+  
+  <div class="table-responsive">
+    <table id="transactionsTable" class="table table-dark table-hover">
+      <thead>
+        <tr>
+          <th>Batch No.</th>
+          <th>Mineral</th>
+          <th>Grade</th>
+          <th>Supplier</th>
+          <th>Weight</th>
+          <th>Unit</th>
+          <th>Recorded By</th>
+          <th>Date & Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for batch in recent_transactions %}
+          {% for item in batch.items.all %}
+            <tr>
+              <td>{{ batch.batch_no }}</td>
+              <td>{{ item.mineral_type.name }}</td>
+              <td>{{ item.grade.grade_name }}</td>
+              <td>{{ batch.supplier_name }}</td>
+              <td>{{ item.weight|floatformat:2|intcomma }}</td>
+              <td>{{ item.get_weight_unit_display }}</td>
+              <td>{{ batch.recorded_by.name|default:batch.recorded_by.username }}</td>
+              <td>{{ batch.timestamp|date:"M. d, Y, h:i A" }}</td>
+            </tr>
+          {% endfor %}
+        {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted">No recent batches found</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- User Role Assignment Table -->
+{% if unassigned_users %}
+<div class="data-table-container">
+  <h4 class="section-title">
+    <i class="fas fa-user-cog"></i>
+    User Role Assignment
+  </h4>
+  
+  <div class="table-responsive">
+    <table class="table table-dark table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Assign Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in unassigned_users %}
+        <tr>
+          <td>{{ user.get_full_name|default:user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>
+            <form method="post" action="{% url 'office3:assign_role' %}" class="assign-form d-flex align-items-center gap-2" onsubmit="return assignRole(this, event)">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ user.id }}">
+              
+              <select name="office" class="form-control assign-select" required>
+                <option value="">Select Office</option>
+                <option value="office1">Office 1</option>
+                <option value="office2">Office 2</option>
+              </select>
+              
+              <button type="submit" class="btn btn-primary assign-btn">
+                <i class="fas fa-check me-1"></i>Assign
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-center text-muted">No unassigned users found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock content %}
+
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'js/jquery.min.js' %}"></script>
+<script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'js/office3.js' %}"></script>
+{% endblock javascript %}
+
+{% block inline_javascript %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize DataTable
+  if (document.getElementById('transactionsTable')) {
+    $('#transactionsTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[6, 'desc']],
+      language: {
+        search: "Search transactions:",
+        lengthMenu: "Show _MENU_ per page",
+        info: "Showing _START_ to _END_ of _TOTAL_",
+        paginate: {
+          first: "First",
+          last: "Last",
+          next: "Next",
+          previous: "Previous"
+        }
+      },
+      columnDefs: [
+        { targets: [3, 4, 6], className: 'text-center' }
+      ]
+    });
+  }
+
+  // KPI Card Animations
+  const kpiCards = document.querySelectorAll('.kpi-card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationPlayState = 'running';
+      }
+    });
+  });
+  kpiCards.forEach(card => observer.observe(card));
+
+  // Notification Pulse Animation
+  const notificationBtn = document.querySelector('.notification-btn');
+  if (notificationBtn) {
+    setInterval(() => {
+      notificationBtn.style.animation = 'pulse 0.5s ease';
+      setTimeout(() => notificationBtn.style.animation = '', 500);
+    }, 10000);
+  }
+
+  // Format large numbers for KPI display
+  function formatLargeNumber(num) {
+    if (num === null || isNaN(num)) return '₦0';
+    const absNum = Math.abs(num);
+    let formatted;
+    if (absNum >= 1e9) {
+        formatted = (num / 1e9).toFixed(2) + 'B';
+    } else if (absNum >= 1e6) {
+        formatted = (num / 1e6).toFixed(2) + 'M';
+    } else if (absNum >= 1e3) {
+        formatted = (num / 1e3).toFixed(1) + 'K';
+    } else {
+        formatted = num.toFixed(2);
+    }
+    return `₦${formatted}`;
+  }
+
+  // Set total value
+  const totalValue = {{ total_value|floatformat:2|default:"0" }};
+  const formattedTotalEl = document.getElementById('formatted-total');
+  if (formattedTotalEl) {
+    formattedTotalEl.textContent = formatLargeNumber(totalValue);
+  }
+
+  // Set today's total value
+  const todayTotalValue = {{ today_total_value|floatformat:2|default:"0" }};
+  const formattedTodayTotalEl = document.getElementById('formatted-today-total');
+  if (formattedTodayTotalEl) {
+    formattedTodayTotalEl.textContent = formatLargeNumber(todayTotalValue);
+  }
+  
+});
+</script>
+
+<!-- Additional Animations -->
+<script>
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .sidebar-3d {
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  @media (max-width: 767.98px) {
+    .sidebar-3d {
+      transform: translateX(-100%) perspective(1000px) rotateY(-15deg);
+    }
+    .sidebar-3d.sidebar-open {
+      transform: translateX(0) perspective(1000px) rotateY(0deg);
+    }
+  }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock inline_javascript %}

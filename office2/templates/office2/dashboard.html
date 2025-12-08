@@ -1,0 +1,512 @@
+<!-- templates/office2/dashboard.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Office 2 - Dashboard{% endblock %}
+
+{% block sidebar_nav %}
+<!-- Office 2 Sidebar Navigation -->
+<ul class="nav flex-column">
+    <li class="nav-item">
+        <a class="nav-link active" href="{% url 'office2:dashboard' %}">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'office2:transaction_list' %}">
+            <i class="fas fa-list-alt me-2"></i>
+            Mineral Transactions
+        </a>
+    </li>
+</ul>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(25px);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        overflow: hidden;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        border-color: rgba(214, 51, 108, 0.3);
+    }
+
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, var(--card-color), var(--card-color-light));
+        border-radius: 16px 16px 0 0;
+    }
+
+    .kpi-card.pending {
+        --card-color: #f59e0b;
+        --card-color-light: #fbbf24;
+    }
+
+    .kpi-card.approved {
+        --card-color: #10b981;
+        --card-color-light: #34d399;
+    }
+
+    .kpi-card.paid {
+        --card-color: #3b82f6;
+        --card-color-light: #60a5fa;
+    }
+
+    .kpi-card.total {
+        --card-color: #d6336c;
+        --card-color-light: #ff4d94;
+    }
+
+    .kpi-card.weight-kg {
+        --card-color: #8b5cf6;
+        --card-color-light: #a78bfa;
+    }
+
+    .kpi-card.weight-lb {
+        --card-color: #f97316;
+        --card-color-light: #fb923c;
+    }
+
+    .kpi-card.value {
+        --card-color: #22c55e;
+        --card-color-light: #4ade80;
+    }
+
+    .kpi-icon {
+        font-size: 1rem;
+        color: var(--card-color);
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .kpi-card:hover .kpi-icon {
+        transform: scale(1.1);
+        color: var(--card-color-light);
+    }
+
+    .kpi-number {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #f1f1f1;
+        margin: 0;
+        line-height: 1;
+    }
+
+    .kpi-label {
+        font-size: 0.875rem;
+        color: rgba(241, 241, 241, 0.8);
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .transactions-table {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+
+    .table-dark th {
+        background: rgba(214, 51, 108, 0.1);
+        border-bottom: 2px solid rgba(214, 51, 108, 0.3);
+        color: #f1f1f1;
+        font-weight: 600;
+        padding: 1rem;
+    }
+
+    .table-dark td {
+        padding: 0.875rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .table-dark tbody tr:hover {
+        background: rgba(214, 51, 108, 0.05);
+        transform: scale(1.005);
+        transition: all 0.2s ease;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-pending {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-approved {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-paid {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .status-completed {
+        background: rgba(34, 197, 94, 0.2);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-rejected {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .section-header {
+        color: #f1f1f1;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-header i {
+        color: #d6336c;
+        font-size: 1.25rem;
+    }
+
+    .kpi-section-title {
+        color: #f1f1f1;
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .kpi-section-title i {
+        color: #d6336c;
+    }
+
+    @media (max-width: 768px) {
+        .kpi-card {
+            height: 100px;
+            padding: 1rem;
+        }
+        
+        .kpi-number {
+            font-size: 1.5rem;
+        }
+        
+        .kpi-icon {
+            font-size: 1.5rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-container">
+                <h1 class="section-header">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Office 2 - Approval & Payment Dashboard
+                </h1>
+                <p class="text-light mb-0">Monitor transaction approvals, payments, and system overview</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Status KPI Cards -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="kpi-section-title">
+                <i class="fas fa-chart-line"></i>
+                Transaction Status Overview
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="kpi-card pending">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h3 class="kpi-number">{{ pending_count|default:"0" }}</h3>
+                        <p class="kpi-label">Today Pending Transactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="kpi-card approved">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3 class="kpi-number">{{ approved_count|default:"0" }}</h3>
+                        <p class="kpi-label">Today Approved (need to be paid)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="kpi-card paid">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h3 class="kpi-number">{{ paid_count|default:"0" }}</h3>
+                        <p class="kpi-label">Today Paid Transactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="kpi-card total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3 class="kpi-number">{{ total_transactions|default:"0" }}</h3>
+                        <p class="kpi-label">Today Total Transactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paid Transactions KPI Cards -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="kpi-section-title">
+                <i class="fas fa-coins"></i>
+                Today's Paid Transactions Summary
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-xl-4 col-lg-4 col-md-6 mb-3">
+            <div class="kpi-card weight-kg">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-weight-hanging"></i>
+                        </div>
+                        <h3 class="kpi-number">{{ paid_weight_kg|default:"0" }} kg</h3>
+                        <p class="kpi-label">Total Weight (Kilograms)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-lg-4 col-md-6 mb-3">
+            <div class="kpi-card weight-lb">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <h3 class="kpi-number">{{ paid_weight_lb|default:"0" }} lb</h3>
+                        <p class="kpi-label">Total Weight (Pounds)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-lg-4 col-md-6 mb-3">
+            <div class="kpi-card value">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-icon">
+                            <i class="fas fa-naira-sign"></i>
+                        </div>
+                        <h3 class="kpi-number">₦{{ paid_total_value|floatformat:2|default:"0.00" }}</h3>
+                        <p class="kpi-label">Total Value Paid</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="transactions-table">
+                <div class="p-4">
+                    <h4 class="section-header mb-4">
+                        <i class="fas fa-history"></i>
+                        Recent Transactions
+                    </h4>
+                    
+                    {% if recent_transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        <i class="fas fa-gem me-2"></i>Mineral Type
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-truck me-2"></i>Supplier
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-weight me-2"></i>Weight
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-info-circle me-2"></i>Status
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-calendar me-2"></i>Date Received
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-dollar-sign me-2"></i>Total Value
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-gem text-warning me-2"></i>
+                                            <div>
+                                                <div class="fw-bold">{{ transaction.mineral_type.name }}</div>
+                                                <small class="text-muted">{{ transaction.grade.grade_name }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ transaction.supplier.name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">{{ transaction.weight|floatformat:2 }}</span> {{ transaction.get_weight_unit_display|lower }}
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-{{ transaction.status }}">
+                                            {% if transaction.status == 'pending' %}
+                                                <i class="fas fa-clock me-1"></i>
+                                            {% elif transaction.status == 'approved' %}
+                                                <i class="fas fa-check me-1"></i>
+                                            {% elif transaction.status == 'paid' %}
+                                                <i class="fas fa-money-bill me-1"></i>
+                                            {% elif transaction.status == 'completed' %}
+                                                <i class="fas fa-check-double me-1"></i>
+                                            {% elif transaction.status == 'rejected' %}
+                                                <i class="fas fa-times me-1"></i>
+                                            {% endif %}
+                                            {{ transaction.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ transaction.date_received|date:"M d, Y" }}</div>
+                                        <small class="text-muted">{{ transaction.date_received|date:"g:i A" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-success">
+                                            ₦{{ transaction.total_value|floatformat:2 }}
+                                        </span>
+                                        {% if transaction.agreed_payout %}
+                                            <br>
+                                            <small class="text-warning">
+                                                <i class="fas fa-handshake"></i> Negotiated
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'office2:transaction_list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-2"></i>View All Transactions
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Recent Transactions</h5>
+                        <p class="text-muted">There are no transactions to display at the moment.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add entrance animation for KPI cards
+    const kpiCards = document.querySelectorAll('.kpi-card');
+    kpiCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Add hover effect for table rows
+    const tableRows = document.querySelectorAll('.table tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(214, 51, 108, 0.08)';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+{% endblock %}
