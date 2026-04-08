@@ -1,0 +1,43 @@
+# General
+# ------------------------------------------------------------------------------
+# DJANGO_READ_DOT_ENV_FILE=True
+DJANGO_SETTINGS_MODULE=config.settings.production
+DJANGO_SECRET_KEY=J2Hrfg0Xja5M1lnjz9ijeayepmk5TNKSymLuV0jIANqLGaFto9AeTcN3IjRegMa1
+DJANGO_ADMIN_URL=FsrlxfOd8UwZQNxPcaJTdT8neaGTLG0Q/
+
+
+# Security
+# ------------------------------------------------------------------------------
+# TIP: better off using DNS, however, redirect is OK too
+DJANGO_SECURE_SSL_REDIRECT=False
+
+# Email
+# ------------------------------------------------------------------------------
+DJANGO_SERVER_EMAIL= 'yarima_mining@gmil.com'
+
+
+# django-allauth
+# ------------------------------------------------------------------------------
+DJANGO_ACCOUNT_ALLOW_REGISTRATION=True
+
+# Gunicorn
+# ------------------------------------------------------------------------------
+WEB_CONCURRENCY=4
+
+
+# Redis
+# ------------------------------------------------------------------------------
+REDIS_URL=redis://redis:6379/0
+
+
+# Add the current server LAN IPv4 address(es) here.
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,192.168.0.163,192.168.213.45
+DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost,http://127.0.0.1,http://0.0.0.0,http://192.168.0.163,http://192.168.213.45
+
+DJANGO_DEBUG=False
+DJANGO_READ_DOT_ENV_FILE=True
+
+# Email (optional)
+DJANGO_DEFAULT_FROM_EMAIL=yarima_mining <noreply@localhost>
+
+DJANGO_EMAIL_SUBJECT_PREFIX=[yarima_mining]

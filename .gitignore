@@ -275,6 +275,11 @@ yarima_mining/media/
 .env
 .envs/*
 !.envs/.local/
+!.envs/.local/.django.example
+!.envs/.local/.postgres.example
+!.envs/.production/
+!.envs/.production/.django.example
+!.envs/.production/.postgres.example
 
 walkthrough.md
 IMPLIMENTATION_PLAN_OFFICE2_AND_FLEXIBLE_DATES.md
