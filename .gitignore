@@ -275,3 +275,6 @@ yarima_mining/media/
 .env
 .envs/*
 !.envs/.local/
+
+walkthrough.md
+IMPLIMENTATION_PLAN_OFFICE2_AND_FLEXIBLE_DATES.md
