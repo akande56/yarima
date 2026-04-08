@@ -442,7 +442,7 @@ class MineralSale(models.Model):
     total_price = models.DecimalField(_("Total Price"), max_digits=15, decimal_places=2, editable=False)
     buyer_name = models.CharField(_("Buyer Name"), max_length=150)
     buyer_contact = models.CharField(_("Buyer Contact"), max_length=100, blank=True, null=True)
-    sale_date = models.DateTimeField(_("Sale Date"), auto_now_add=True)
+    sale_date = models.DateTimeField(_("Sale Date"), default=timezone.now)
     processed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='sales_processed'
     )

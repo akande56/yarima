@@ -17,4 +17,7 @@ urlpatterns = [
 
     # Reject Batch
     path('transactions/reject/<int:batch_id>/', views.reject_batch, name='reject_batch'),
+    
+    # Delete Batch
+    path('transactions/delete/<int:batch_id>/', views.delete_batch, name='delete_batch'),
 ]

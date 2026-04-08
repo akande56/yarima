@@ -5,21 +5,21 @@
 {% block title %}Office 2 - Dashboard{% endblock %}
 
 {% block sidebar_nav %}
-<!-- Office 2 Sidebar Navigation -->
-<ul class="nav flex-column">
-    <li class="nav-item">
-        <a class="nav-link active" href="{% url 'office2:dashboard' %}">
-            <i class="fas fa-tachometer-alt me-2"></i>
-            Dashboard
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="{% url 'office2:transaction_list' %}">
-            <i class="fas fa-list-alt me-2"></i>
-            Mineral Transactions
-        </a>
-    </li>
-</ul>
+<li class="nav-item">
+    <a class="nav-link text-white active" href="{% url 'office2:dashboard' %}">
+        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office2:transaction_list' %}">
+        <i class="fas fa-list-alt me-2"></i>Mineral Transactions
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-white" href="{% url 'office1:transactions' %}">
+        <i class="fas fa-plus-circle me-2"></i>New Mineral Transaction
+    </a>
+</li>
 {% endblock %}
 
 {% block extra_css %}

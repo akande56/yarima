@@ -14,4 +14,5 @@ urlpatterns = [
     path('transactions/api/<int:pk>/', views.transaction_detail_api, name='transaction_detail_api'),
     path('transactions/approve/<int:pk>/', views.approve_batch, name='approve_batch'),
     path('transactions/pay/<int:pk>/', views.pay_batch, name='pay_batch'),
+    path('transactions/delete/<int:pk>/', views.delete_batch, name='delete_batch'),
 ]

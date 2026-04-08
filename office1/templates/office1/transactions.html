@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% load static %}
-{% block title %}Office 1 - Transactions{% endblock title %}
+{% block title %}{% if is_office2_view %}Office 2 - Transactions{% else %}Office 1 - Transactions{% endif %}{% endblock title %}
 {% block extra_css %}
 <style>
   .transaction-form {
@@ -18,6 +18,7 @@
   .filter-buttons {
     margin-bottom: 1.5rem;
   }
+
   .filter-btn {
     background: linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(71, 85, 105, 0.1));
     border: 1px solid rgba(148, 163, 184, 0.3);
@@ -34,6 +35,7 @@
     align-items: center;
     gap: 0.5rem;
   }
+
   .filter-btn::before {
     content: '';
     position: absolute;
@@ -44,9 +46,11 @@
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     transition: left 0.5s;
   }
+
   .filter-btn:hover::before {
     left: 100%;
   }
+
   .filter-btn:hover {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
     border-color: rgba(59, 130, 246, 0.5);
@@ -54,6 +58,7 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
   }
+
   .filter-btn.active {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     border-color: #1d4ed8;
@@ -61,6 +66,7 @@
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
   }
+
   .filter-btn.active:hover {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     transform: translateY(-2px);
@@ -72,6 +78,7 @@
     background: linear-gradient(135deg, rgba(107, 114, 128, 0.1), rgba(75, 85, 99, 0.1));
     border-color: rgba(156, 163, 175, 0.3);
   }
+
   .filter-btn[data-filter="all"].active {
     background: linear-gradient(135deg, #6b7280, #4b5563);
   }
@@ -80,6 +87,7 @@
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
     border-color: rgba(59, 130, 246, 0.3);
   }
+
   .filter-btn[data-filter="today"].active {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
   }
@@ -88,6 +96,7 @@
     background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(124, 58, 237, 0.1));
     border-color: rgba(168, 85, 247, 0.3);
   }
+
   .filter-btn[data-filter="week"].active {
     background: linear-gradient(135deg, #a855f7, #7c3aed);
   }
@@ -96,6 +105,7 @@
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
     border-color: rgba(16, 185, 129, 0.3);
   }
+
   .filter-btn[data-filter="month"].active {
     background: linear-gradient(135deg, #10b981, #059669);
   }
@@ -104,6 +114,7 @@
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
     border-color: rgba(245, 158, 11, 0.3);
   }
+
   .filter-btn[data-filter="year"].active {
     background: linear-gradient(135deg, #f59e0b, #d97706);
   }
@@ -121,6 +132,7 @@
     position: relative;
     overflow: hidden;
   }
+
   .status-badge::before {
     content: '';
     position: absolute;
@@ -131,19 +143,23 @@
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.8s;
   }
+
   .status-badge:hover::before {
     left: 100%;
   }
+
   .status-pending {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
     color: #fbbf24;
     border: 1px solid rgba(245, 158, 11, 0.4);
     box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
   }
+
   .status-pending:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
   }
+
   .status-approved,
   .status-completed,
   .status-paid {
@@ -152,25 +168,29 @@
     border: 1px solid rgba(34, 197, 94, 0.4);
     box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
   }
+
   .status-approved:hover,
   .status-completed:hover,
   .status-paid:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
   }
+
   .status-rejected {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.2));
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.4);
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
   }
+
   .status-rejected:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
   }
 
   /* Action Buttons */
-  .receipt-btn, .download-btn {
+  .receipt-btn,
+  .download-btn {
     background: linear-gradient(135deg, rgba(214, 51, 108, 0.1), rgba(190, 24, 93, 0.1));
     border: 1px solid rgba(214, 51, 108, 0.3);
     color: #f472b6;
@@ -185,7 +205,9 @@
     align-items: center;
     gap: 0.5rem;
   }
-  .receipt-btn::before, .download-btn::before {
+
+  .receipt-btn::before,
+  .download-btn::before {
     content: '';
     position: absolute;
     top: 0;
@@ -195,9 +217,12 @@
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     transition: left 0.5s;
   }
-  .receipt-btn:hover::before, .download-btn:hover::before {
+
+  .receipt-btn:hover::before,
+  .download-btn:hover::before {
     left: 100%;
   }
+
   .receipt-btn:hover {
     background: linear-gradient(135deg, rgba(214, 51, 108, 0.2), rgba(190, 24, 93, 0.2));
     border-color: rgba(214, 51, 108, 0.5);
@@ -205,11 +230,13 @@
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 8px 25px rgba(214, 51, 108, 0.3);
   }
+
   .download-btn {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
     border: 1px solid rgba(16, 185, 129, 0.3);
     color: #6ee7b7;
   }
+
   .download-btn:hover {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
     border-color: rgba(16, 185, 129, 0.5);
@@ -226,19 +253,23 @@
     overflow: hidden;
     border: 1px solid rgba(214, 51, 108, 0.1);
   }
+
   .table-dark th {
     background: rgba(214, 51, 108, 0.2);
     border-color: rgba(255, 255, 255, 0.1);
     color: #f1f1f1;
     font-weight: 600;
   }
+
   .table-dark td {
     border-color: rgba(255, 255, 255, 0.1);
     color: #f1f1f1;
   }
+
   .form-row {
     margin-bottom: 1rem;
   }
+
   .loading-spinner {
     display: none;
     width: 20px;
@@ -249,11 +280,19 @@
     animation: spin 1s linear infinite;
     margin-left: 10px;
   }
+
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
   }
-  .success-message, .error-message {
+
+  .success-message,
+  .error-message {
     background: rgba(0, 0, 0, 0.7);
     color: white;
     border-radius: 8px;
@@ -261,9 +300,11 @@
     margin-bottom: 1rem;
     display: none;
   }
+
   .success-message {
     border-left: 4px solid #10b981;
   }
+
   .error-message {
     border-left: 4px solid #ef4444;
   }
@@ -276,7 +317,7 @@
     <div class="col-12">
       <h2 class="text-white mb-4">
         <i class="fas fa-exchange-alt me-2"></i>
-        Office 1 - Transaction Management
+        {% if is_office2_view %}Office 2 - Transaction Management{% else %}Office 1 - Transaction Management{% endif %}
       </h2>
 
       <!-- Messages -->
@@ -301,7 +342,7 @@
                   <i class="fas fa-user"></i>Supplier Name
                 </label>
                 <input type="text" class="form-control" id="supplier_name" name="supplier_name"
-                       placeholder="Enter supplier name" required>
+                  placeholder="Enter supplier name" required>
               </div>
             </div>
             <div class="col-md-6">
@@ -310,7 +351,15 @@
                   <i class="fas fa-phone"></i>Phone (Optional)
                 </label>
                 <input type="text" class="form-control" id="supplier_phone" name="supplier_phone"
-                       placeholder="e.g. 08012345678">
+                  placeholder="e.g. 08012345678">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-row">
+                <label for="transaction_date" class="form-label">
+                  <i class="fas fa-calendar"></i>Transaction Date & Time
+                </label>
+                <input type="datetime-local" class="form-control" id="transaction_date" name="transaction_date" value="{% now 'Y-m-d\\TH:i' %}">
               </div>
             </div>
           </div>
@@ -319,7 +368,12 @@
           <table class="table table-sm table-dark" id="mineralsTable">
             <thead>
               <tr>
-                <th>Mineral</th><th>Grade</th><th>Weight</th><th>Unit</th><th>Negotiated Price</th><th>Actions</th>
+                <th>Mineral</th>
+                <th>Grade</th>
+                <th>Weight</th>
+                <th>Unit</th>
+                <th>Negotiated Price</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -328,13 +382,14 @@
                   <select name="mineral_type[]" class="form-control mineral-type-select" required>
                     <option value="">Select Mineral</option>
                     {% for mineral in mineral_types %}
-                    <option style="background-color: black; color: white;" value="{{ mineral.id }}">{{ mineral.name }}</option>
+                    <option style="background-color: black; color: white;" value="{{ mineral.id }}">{{ mineral.name }}
+                    </option>
                     {% endfor %}
                   </select>
                 </td>
                 <td>
                   <select name="grade[]" class="form-control grade-select" required disabled>
-                    <option style="background-color: black; color: white;" value="">Select Grade</option> 
+                    <option style="background-color: black; color: white;" value="">Select Grade</option>
                   </select>
                 </td>
                 <td>
@@ -395,7 +450,8 @@
           <select id="mineralFilter" class="form-select d-inline-block w-auto">
             <option style="background-color: black; color: white;" value="">All Minerals</option>
             {% for mineral in mineral_types %}
-            <option style="background-color: black; color: white;" value="{{ mineral.id }}" {% if mineral.id|stringformat:"s" == mineral_type_id %}selected{% endif %}>
+            <option style="background-color: black; color: white;" value="{{ mineral.id }}" 
+            {% if mineral.id|stringformat:"s" == mineral_type_id %}selected{% endif %}>
               {{ mineral.name }}
             </option>
             {% endfor %}
@@ -429,32 +485,40 @@
                 <td>
                   <span class="status-badge status-{{ batch.status }}">
                     {% if batch.status == 'pending' %}
-                      <i class="fas fa-clock"></i> Pending
+                    <i class="fas fa-clock"></i> Pending
                     {% elif batch.status == 'approved' %}
-                      <i class="fas fa-check"></i> Approved
+                    <i class="fas fa-check"></i> Approved
                     {% elif batch.status in 'paid,completed' %}
-                      <i class="fas fa-dollar-sign"></i> Paid
+                    <i class="fas fa-dollar-sign"></i> Paid
                     {% elif batch.status == 'rejected' %}
-                      <i class="fas fa-times"></i> Rejected
+                    <i class="fas fa-times"></i> Rejected
                     {% endif %}
                   </span>
                 </td>
                 <td>
                   <div class="action-buttons">
-                    <a href="/office1/receipt/{{ batch.items.first.id }}/" target="_blank"
-                       class="download-btn">
+                    <a href="/office1/receipt/{{ batch.items.first.id }}/" target="_blank" class="download-btn">
                       <i class="fas fa-download"></i> Receipt
                     </a>
                     {% if batch.status == 'pending' %}
-                      <button class="receipt-btn" onclick="rejectBatch({{ batch.id }})">
-                        <i class="fas fa-times"></i> Reject
-                      </button>
+                    <button class="receipt-btn" onclick="rejectBatch({{ batch.id }})">
+                      <i class="fas fa-times"></i> Reject
+                    </button>
+                    {% endif %}
+                    {% if batch.status in 'pending,rejected' %}
+                    <button class="receipt-btn"
+                      style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(185, 28, 28, 0.1)); border-color: rgba(239, 68, 68, 0.3); color: #f87171;"
+                      onclick="deleteBatch({{ batch.id }})">
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
                     {% endif %}
                   </div>
                 </td>
               </tr>
               {% empty %}
-              <tr><td colspan="7" class="text-center py-4">No batches found</td></tr>
+              <tr>
+                <td colspan="7" class="text-center py-4">No batches found</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
@@ -467,7 +531,8 @@
         <ul class="pagination justify-content-center">
           {% if batches.has_previous %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ batches.previous_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&mineral_type={{ mineral_type_id }}&filter={{ request.GET.filter }}">
+            <a class="page-link"
+              href="?page={{ batches.previous_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&mineral_type={{ mineral_type_id }}&filter={{ request.GET.filter }}">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
@@ -475,7 +540,8 @@
           <li class="page-item active"><span class="page-link">{{ batches.number }}</span></li>
           {% if batches.has_next %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ batches.next_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&mineral_type={{ mineral_type_id }}&filter={{ request.GET.filter }}">
+            <a class="page-link"
+              href="?page={{ batches.next_page_number }}&date_from={{ date_from }}&date_to={{ date_to }}&mineral_type={{ mineral_type_id }}&filter={{ request.GET.filter }}">
               <i class="fas fa-chevron-right"></i>
             </a>
           </li>
@@ -488,157 +554,211 @@
 </div>
 
 <script>
-// Mineral Grades Mapping
-const mineralGrades = {
+  // Mineral Grades Mapping
+  const mineralGrades = {
   {% for mineral in mineral_types %}
   "{{ mineral.id }}": [
     {% for grade in mineral.grades.all %}
-    {id: {{ grade.id }}, name: "{{ grade.grade_name }}"}{% if not forloop.last %},{% endif %}
-    {% endfor %}
-  ]{% if not forloop.last %},{% endif %}
+  { id: {{ grade.id }}, name: "{{ grade.grade_name }}" } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+  ]{% if not forloop.last %}, {% endif %}
   {% endfor %}
 };
 
-// Dynamic Rows
-document.getElementById('addMineralRow').addEventListener('click', function () {
-  const row = document.createElement('tr');
-  row.className = 'mineral-row';
-  row.innerHTML = document.querySelector('.mineral-row').outerHTML;
-  document.querySelector('#mineralsTable tbody').appendChild(row);
-  setupRow(row);
-});
+  // Dynamic Rows
+  document.getElementById('addMineralRow').addEventListener('click', function () {
+    const row = document.createElement('tr');
+    row.className = 'mineral-row';
+    row.innerHTML = document.querySelector('.mineral-row').outerHTML;
+    document.querySelector('#mineralsTable tbody').appendChild(row);
+    setupRow(row);
+  });
 
-function setupRow(row) {
-  const mineralSelect = row.querySelector('.mineral-type-select');
-  const gradeSelect = row.querySelector('.grade-select');
+  function setupRow(row) {
+    const mineralSelect = row.querySelector('.mineral-type-select');
+    const gradeSelect = row.querySelector('.grade-select');
 
-  function updateGrades() {
-    gradeSelect.innerHTML = '<option value="">Select Grade</option>';
-    gradeSelect.disabled = true;
-    const grades = mineralGrades[mineralSelect.value] || [];
-    if (grades.length) {
-      gradeSelect.disabled = false;
-      grades.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.id;
-        opt.textContent = g.name;
-        opt.style.backgroundColor = 'black';
-        opt.style.color = 'white'
-        gradeSelect.appendChild(opt);
-      });
+    function updateGrades() {
+      gradeSelect.innerHTML = '<option value="">Select Grade</option>';
+      gradeSelect.disabled = true;
+      const grades = mineralGrades[mineralSelect.value] || [];
+      if (grades.length) {
+        gradeSelect.disabled = false;
+        grades.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.id;
+          opt.textContent = g.name;
+          opt.style.backgroundColor = 'black';
+          opt.style.color = 'white'
+          gradeSelect.appendChild(opt);
+        });
+      }
     }
+
+    mineralSelect.addEventListener('change', updateGrades);
+    updateGrades();
   }
 
-  mineralSelect.addEventListener('change', updateGrades);
-  updateGrades();
-}
+  document.querySelectorAll('.mineral-row').forEach(setupRow);
 
-document.querySelectorAll('.mineral-row').forEach(setupRow);
+  // Event delegation for remove buttons (handles both initial and dynamically added rows)
+  document.querySelector('#mineralsTable tbody').addEventListener('click', function (e) {
+    if (e.target.closest('.remove-row')) {
+      const rowCount = document.querySelectorAll('.mineral-row').length;
+      if (rowCount > 1) {
+        e.target.closest('.mineral-row').remove();
+      } else {
+        alert("At least one mineral item is required.");
+      }
+    }
+  });
 
-// Apply Date Filter
-document.getElementById('applyDateFilter').addEventListener('click', function () {
-  const url = new URL(window.location);
-  url.searchParams.set('page', '1');
-  url.searchParams.set('date_from', document.getElementById('dateFrom').value);
-  url.searchParams.set('date_to', document.getElementById('dateTo').value);
-  url.searchParams.set('mineral_type', document.getElementById('mineralFilter').value);
-  url.searchParams.delete('filter'); // reset quick filter
-  window.location.href = url.toString();
-});
-
-// Quick Filters (Today, Week, etc.)
-document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
-  btn.addEventListener('click', function () {
-    const filter = this.getAttribute('data-filter');
+  // Apply Date Filter
+  document.getElementById('applyDateFilter').addEventListener('click', function () {
     const url = new URL(window.location);
     url.searchParams.set('page', '1');
-    url.searchParams.set('filter', filter);
-    url.searchParams.delete('date_from');
-    url.searchParams.delete('date_to');
-    url.searchParams.delete('mineral_type');
+    url.searchParams.set('date_from', document.getElementById('dateFrom').value);
+    url.searchParams.set('date_to', document.getElementById('dateTo').value);
+    url.searchParams.set('mineral_type', document.getElementById('mineralFilter').value);
+    url.searchParams.delete('filter'); // reset quick filter
     window.location.href = url.toString();
-
-    document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
   });
-});
 
-// Mineral Filter
-document.getElementById('mineralFilter').addEventListener('change', function () {
-  const url = new URL(window.location);
-  url.searchParams.set('page', '1');
-  url.searchParams.set('mineral_type', this.value);
-  url.searchParams.delete('filter');
-  window.location.href = url.toString();
-});
+  // Quick Filters (Today, Week, etc.)
+  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const filter = this.getAttribute('data-filter');
+      const url = new URL(window.location);
+      url.searchParams.set('page', '1');
+      url.searchParams.set('filter', filter);
+      url.searchParams.delete('date_from');
+      url.searchParams.delete('date_to');
+      url.searchParams.delete('mineral_type');
+      window.location.href = url.toString();
 
-// Submit Form
-document.getElementById('batchForm').addEventListener('submit', function (e) {
-  e.preventDefault();
-  const form = this;
-  const formData = new FormData(form);
-  fetch('', {
-    method: 'POST',
-    body: formData,
-    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
-      showSuccess('Batch saved successfully!');
-      setTimeout(() => {
-        window.open(data.receipt_url, '_blank');
-        location.reload();
-      }, 1000);
-    } else {
-      showError(data.error || 'Failed to save');
-    }
-  })
-  .catch(() => showError('Network error'))
-  .finally(() => showLoading(false));
-});
-
-// Reject Batch
-function rejectBatch(id) {
-  if (!confirm("Reject this batch?")) return;
-  fetch(`/office1/transactions/reject/${id}/`, {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-      'Content-Type': 'application/json'
-    }
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
-      showSuccess("Batch rejected.");
-      setTimeout(() => location.reload(), 800);
-    } else {
-      showError(data.error);
-    }
+      document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
   });
-}
 
-// UI Helpers
-function showSuccess(msg) {
-  const el = document.getElementById('successMessage');
-  el.style.display = 'block';
-  document.getElementById('successText').textContent = msg;
-  document.getElementById('errorMessage').style.display = 'none';
-}
-function showError(msg) {
-  const el = document.getElementById('errorMessage');
-  el.style.display = 'block';
-  document.getElementById('errorText').textContent = msg;
-  document.getElementById('successMessage').style.display = 'none';
-}
-function showLoading(show) {
-  document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
-}
+  // Mineral Filter
+  document.getElementById('mineralFilter').addEventListener('change', function () {
+    const url = new URL(window.location);
+    url.searchParams.set('page', '1');
+    url.searchParams.set('mineral_type', this.value);
+    url.searchParams.delete('filter');
+    window.location.href = url.toString();
+  });
+
+  // Submit Form
+  document.getElementById('batchForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const form = this;
+    const formData = new FormData(form);
+    fetch('', {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showSuccess('Batch saved successfully!');
+          setTimeout(() => {
+            window.open(data.receipt_url, '_blank');
+            location.reload();
+          }, 1000);
+        } else {
+          showError(data.error || 'Failed to save');
+        }
+      })
+      .catch(() => showError('Network error'))
+      .finally(() => showLoading(false));
+  });
+
+  // Reject Batch
+  function rejectBatch(id) {
+    if (!confirm("Reject this batch?")) return;
+    fetch(`/office1/transactions/reject/${id}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showSuccess("Batch rejected.");
+          setTimeout(() => location.reload(), 800);
+        } else {
+          showError(data.error);
+        }
+      });
+  }
+
+  // Delete Batch
+  function deleteBatch(id) {
+    if (!confirm("⚠️ Are you sure you want to DELETE this batch? This action cannot be undone!")) return;
+    fetch(`/office1/transactions/delete/${id}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showSuccess(data.message || "Batch deleted successfully.");
+          setTimeout(() => location.reload(), 800);
+        } else {
+          showError(data.error || "Failed to delete batch.");
+        }
+      })
+      .catch(err => {
+        console.error('Delete error:', err);
+        showError("Network error. Please try again.");
+      });
+  }
+
+  // UI Helpers
+  function showSuccess(msg) {
+    const el = document.getElementById('successMessage');
+    el.style.display = 'block';
+    document.getElementById('successText').textContent = msg;
+    document.getElementById('errorMessage').style.display = 'none';
+  }
+  function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.style.display = 'block';
+    document.getElementById('errorText').textContent = msg;
+    document.getElementById('successMessage').style.display = 'none';
+  }
+  function showLoading(show) {
+    document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+  }
 </script>
 {% endblock content %}
 
 {% block sidebar_nav %}
+{% if is_office2_view %}
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office2:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white" href="{% url 'office2:transaction_list' %}">
+    <i class="fas fa-list-alt me-2"></i>Mineral Transactions
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link text-white active" href="{% url 'office1:transactions' %}">
+    <i class="fas fa-plus-circle me-2"></i>New Mineral Transaction
+  </a>
+</li>
+{% else %}
 <li class="nav-item">
   <a class="nav-link text-white" href="{% url 'office1:dashboard' %}">
     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
@@ -649,4 +769,5 @@ function showLoading(show) {
     <i class="fas fa-exchange-alt me-2"></i>Transactions
   </a>
 </li>
+{% endif %}
 {% endblock sidebar_nav %}

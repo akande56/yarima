@@ -63,6 +63,12 @@ class TransactionManager {
         const markPaidBtn = e.target.closest('.mark-paid-btn');
         if (markPaidBtn) {
           this.markAsPaid(markPaidBtn.dataset.batchId);
+          return;
+        }
+
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+          this.deleteBatch(deleteBtn.dataset.batchId);
         }
       });
     }
@@ -239,6 +245,14 @@ class TransactionManager {
         <button class="btn btn-success btn-sm mark-paid-btn" 
                 data-batch-id="${batch.id}" title="Mark as Paid">
           <i class="fas fa-dollar-sign"></i>
+        </button>
+      `;
+    }
+    if (batch.can_delete) {
+      buttons += `
+        <button class="btn btn-outline-danger btn-sm delete-btn"
+                data-batch-id="${batch.id}" title="Delete">
+          <i class="fas fa-trash"></i>
         </button>
       `;
     }
@@ -613,6 +627,32 @@ showErrorInModal(message) {
     } finally {
       btn.innerHTML = original;
       btn.disabled = false;
+    }
+  }
+
+  async deleteBatch(id) {
+    if (!confirm('Are you sure you want to delete this batch? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/office2/transactions/delete/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': this.csrfToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.showSuccess(result.message || 'Batch deleted successfully.');
+        this.loadTransactions();
+      } else {
+        this.showError(result.error || 'Failed to delete batch.');
+      }
+    } catch (error) {
+      this.showError('Network error. Please try again.');
     }
   }
 

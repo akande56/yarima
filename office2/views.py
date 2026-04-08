@@ -3,7 +3,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.timezone import now
-from django.db.models import Q
 from core.models import (
     MineralBatch,
     TransactionStatusLog,
@@ -61,8 +60,14 @@ def dashboard_view(request):
     })
 
 
-def serialize_batch(batch):
+def serialize_batch(batch, user=None):
     latest_log = batch.status_logs.order_by('-updated_at').first()
+    can_delete = False
+    if user:
+        can_delete = (
+            batch.recorded_by_id == user.id
+            and batch.status in {"pending", "rejected"}
+        )
 
     return {
         "id": batch.id,
@@ -77,7 +82,13 @@ def serialize_batch(batch):
         "items_count": batch.total_items(),
         "total_weight_kg": float(batch.total_original_kg()),
         "total_weight_lb": float(batch.total_original_lb()),
-        "recorded_by": f"{batch.recorded_by.name or batch.recorded_by.username}",
+        "recorded_by_id": batch.recorded_by_id,
+        "recorded_by": (
+            f"{batch.recorded_by.name or batch.recorded_by.username}"
+            if batch.recorded_by
+            else "Unknown"
+        ),
+        "can_delete": can_delete,
         "approved_by": f"{batch.approved_by.name or batch.approved_by.username}" if batch.approved_by else None,
         "paid_at": batch.paid_at.isoformat() if batch.paid_at else None,
         "paid_by": f"{batch.paid_by.name or batch.paid_by.username}" if batch.paid_by else None,
@@ -159,7 +170,7 @@ def transaction_list(request):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({
             "success": True,
-            "data": [serialize_batch(batch) for batch in page_obj],
+            "data": [serialize_batch(batch, user=user) for batch in page_obj],
             "pagination": {
                 "current_page": page_obj.number,
                 "total_pages": paginator.num_pages,
@@ -189,7 +200,7 @@ def transaction_detail_api(request, pk):
     )
     return JsonResponse({
         "success": True,
-        "data": serialize_batch(batch),
+        "data": serialize_batch(batch, user=user),
     })
 
 
@@ -321,4 +332,29 @@ def pay_batch(request, pk):
         "success": True,
         "message": "Batch marked as paid successfully.",
         "status": "paid"
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def delete_batch(request, pk):
+    user = request.user
+    if user.role != User.Roles.OFFICE_2:
+        return JsonResponse({"success": False, "error": "Unauthorized"}, status=403)
+
+    batch = get_object_or_404(MineralBatch, id=pk, recorded_by=user)
+    if batch.status not in {"pending", "rejected"}:
+        return JsonResponse({
+            "success": False,
+            "error": f"Cannot delete batch in '{batch.get_status_display()}' state. Only pending or rejected batches can be deleted.",
+        }, status=400)
+
+    batch_no = batch.batch_no
+    with transaction.atomic():
+        batch.delete()
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Batch {batch_no} deleted successfully.",
     })

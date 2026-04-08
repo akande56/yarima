@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
+from django.utils import timezone
 from django.utils.timezone import now
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
@@ -52,10 +53,15 @@ def dashboard(request):
 @csrf_exempt
 @login_required
 def transaction_view(request):
+    user = request.user
+    allowed_roles = {user.Roles.OFFICE_1, user.Roles.OFFICE_2}
+    if not hasattr(user, "role") or user.role not in allowed_roles:
+        return redirect("dashboard_router")
+
     mineral_types = MineralType.objects.prefetch_related('grades').all()
 
     # Base queryset
-    batches = MineralBatch.objects.filter(recorded_by=request.user).order_by('-timestamp')
+    batches = MineralBatch.objects.filter(recorded_by=user).order_by('-timestamp')
 
     # Get filters
     date_from = request.GET.get('date_from', '')
@@ -94,6 +100,7 @@ def transaction_view(request):
         try:
             supplier_name = request.POST.get('supplier_name', '').strip()
             supplier_phone = request.POST.get('supplier_phone', '').strip() or None
+            transaction_date_raw = request.POST.get('transaction_date', '').strip()
 
             mineral_type_ids = request.POST.getlist('mineral_type[]')
             grade_ids = request.POST.getlist('grade[]')
@@ -109,11 +116,22 @@ def transaction_view(request):
             if len(mineral_type_ids) != len(grade_ids) or len(grade_ids) != len(weights):
                 return JsonResponse({'success': False, 'error': 'Incomplete mineral data.'})
 
+            if transaction_date_raw:
+                try:
+                    transaction_date = datetime.fromisoformat(transaction_date_raw)
+                    if timezone.is_naive(transaction_date):
+                        transaction_date = timezone.make_aware(transaction_date)
+                except ValueError:
+                    return JsonResponse({'success': False, 'error': 'Invalid transaction date format.'})
+            else:
+                transaction_date = timezone.now()
+
             with transaction.atomic():
                 batch = MineralBatch.objects.create(
                     supplier_name=supplier_name,
                     supplier_phone=supplier_phone,
-                    recorded_by=request.user,
+                    recorded_by=user,
+                    timestamp=transaction_date,
                     status='pending'
                 )
 
@@ -165,7 +183,7 @@ def transaction_view(request):
                 TransactionStatusLog.objects.create(
                     transaction=batch,
                     status="pending",
-                    updated_by=request.user
+                    updated_by=user
                 )
 
             return JsonResponse({
@@ -201,6 +219,7 @@ def transaction_view(request):
         'date_from': date_from,
         'date_to': date_to,
         'mineral_type_id': mineral_type_id,
+        'is_office2_view': user.role == user.Roles.OFFICE_2,
     })
 
 
@@ -243,4 +262,39 @@ def reject_batch(request, batch_id):
     return JsonResponse({
         'success': True,
         'message': 'Batch rejected successfully.'
+    })
+
+
+@require_http_methods(["POST"])
+@login_required
+def delete_batch(request, batch_id):
+    """
+    Delete a batch transaction.
+    Only pending and rejected batches can be deleted.
+    Paid, approved, and completed batches cannot be deleted.
+    """
+    user = request.user
+    batch = get_object_or_404(MineralBatch, id=batch_id, recorded_by=user)
+    
+    print(f"[Delete Batch] User: {user.username}, Batch ID: {batch_id}, Status: {batch.status}")
+
+    # Prevent deletion of paid/approved/completed batches
+    if batch.status in ['paid', 'approved', 'completed']:
+        return JsonResponse({
+            'success': False,
+            'error': f"Cannot delete batch in '{batch.get_status_display()}' state. Only pending or rejected batches can be deleted."
+        }, status=400)
+
+    # Store batch info before deletion
+    batch_no = batch.batch_no
+    
+    with transaction.atomic():
+        # Delete related items and logs (cascade should handle this, but being explicit)
+        batch.delete()
+    
+    print(f"[Delete Batch] Batch {batch_no} deleted successfully by {user.username}")
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'Batch {batch_no} deleted successfully.'
     })

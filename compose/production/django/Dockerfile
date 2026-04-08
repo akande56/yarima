@@ -1,6 +1,6 @@
 # compose/production/django/Dockerfile
 
-FROM docker.io/python:3.12.11-slim-bookworm AS python
+FROM docker.io/python:3.12 AS python
 
 # Python build stage
 FROM python AS python-build-stage
@@ -51,7 +51,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   libcairo2 \
   libpango-1.0-0 \
   libpangocairo-1.0-0 \
-  libgdk-pixbuf2.0-0 \
+  libgdk-pixbuf-xlib-2.0-0 \
   libglib2.0-0 \
   libxml2 \
   libxslt1.1 \

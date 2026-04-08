@@ -57,31 +57,82 @@ def dashboard(request):
 
     supplier_count = MineralBatch.objects.values('supplier_name').distinct().count()
 
-    # PAID batches only
-    paid_batches = MineralBatch.objects.filter(status='paid')
+    # PAID batches - use database aggregation instead of Python iteration
+    from django.db.models import Sum, Case, When, DecimalField, Value, F
 
-    # === KPI Calculations using correct model methods ===
-    total_value = sum(batch.total_value() for batch in paid_batches)
-    total_value = total_value.quantize(Decimal('0.00')) if total_value else Decimal('0.00')
+    # Aggregate KPIs directly in database
+    # Calculate total_value in the database (weight * price)
+    paid_stats = MineralBatch.objects.filter(status='paid').aggregate(
+        # Sum total_value: weight * (agreed_payout OR price_per_kg OR price_per_pound)
+        total_value=Sum(
+            Case(
+                # If agreed_payout exists, use it
+                When(items__agreed_payout__isnull=False, then=F('items__weight') * F('items__agreed_payout')),
+                # If weight_unit is kg, use price_per_kg
+                When(items__weight_unit='kg', then=F('items__weight') * F('items__grade__price_per_kg')),
+                # If weight_unit is lb, use price_per_pound
+                When(items__weight_unit='lb', then=F('items__weight') * F('items__grade__price_per_pound')),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        # Sum kg weights (only items with weight_unit='kg')
+        total_kg=Sum(
+            Case(
+                When(items__weight_unit='kg', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        # Sum lb weights (only items with weight_unit='lb')
+        total_lb=Sum(
+            Case(
+                When(items__weight_unit='lb', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        )
+    )
 
-    total_kg = sum(batch.total_original_kg() for batch in paid_batches)
-    total_kg = total_kg.quantize(Decimal('0.00')) if total_kg else Decimal('0.00')
-
-    total_lb = sum(batch.total_original_lb() for batch in paid_batches)
-    total_lb = total_lb.quantize(Decimal('0.00')) if total_lb else Decimal('0.00')
-
-    # Today's data
+    # Today's data - same optimization
     today = timezone.now().date()
-    today_paid_batches = paid_batches.filter(timestamp__date=today)
+    today_stats = MineralBatch.objects.filter(
+        status='paid',
+        timestamp__date=today
+    ).aggregate(
+        total_value=Sum(
+            Case(
+                When(items__agreed_payout__isnull=False, then=F('items__weight') * F('items__agreed_payout')),
+                When(items__weight_unit='kg', then=F('items__weight') * F('items__grade__price_per_kg')),
+                When(items__weight_unit='lb', then=F('items__weight') * F('items__grade__price_per_pound')),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_kg=Sum(
+            Case(
+                When(items__weight_unit='kg', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_lb=Sum(
+            Case(
+                When(items__weight_unit='lb', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        )
+    )
 
-    today_total_value = sum(batch.total_value() for batch in today_paid_batches)
-    today_total_value = today_total_value.quantize(Decimal('0.00')) if today_total_value else Decimal('0.00')
+    # Format values with defaults
+    total_value = (paid_stats['total_value'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    total_kg = (paid_stats['total_kg'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    total_lb = (paid_stats['total_lb'] or Decimal('0.00')).quantize(Decimal('0.00'))
 
-    today_total_kg = sum(batch.total_original_kg() for batch in today_paid_batches)
-    today_total_kg = today_total_kg.quantize(Decimal('0.00')) if today_total_kg else Decimal('0.00')
-
-    today_total_lb = sum(batch.total_original_lb() for batch in today_paid_batches)
-    today_total_lb = today_total_lb.quantize(Decimal('0.00')) if today_total_lb else Decimal('0.00')
+    today_total_value = (today_stats['total_value'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    today_total_kg = (today_stats['total_kg'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    today_total_lb = (today_stats['total_lb'] or Decimal('0.00')).quantize(Decimal('0.00'))
 
     # Recent batches
     recent_batches = MineralBatch.objects.select_related(

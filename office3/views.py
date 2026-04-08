@@ -47,31 +47,82 @@ def dashboard(request):
 
     supplier_count = MineralBatch.objects.values('supplier_name').distinct().count()
 
-    # PAID batches only
-    paid_batches = MineralBatch.objects.filter(status='paid')
+    # PAID batches - use database aggregation instead of Python iteration
+    from django.db.models import Sum, Case, When, DecimalField, Value, F
 
-    # === KPI Calculations using correct model methods ===
-    total_value = sum(batch.total_value() for batch in paid_batches)
-    total_value = total_value.quantize(Decimal('0.00')) if total_value else Decimal('0.00')
+    # Aggregate KPIs directly in database
+    # Calculate total_value in the database (weight * price)
+    paid_stats = MineralBatch.objects.filter(status='paid').aggregate(
+        # Sum total_value: weight * (agreed_payout OR price_per_kg OR price_per_pound)
+        total_value=Sum(
+            Case(
+                # If agreed_payout exists, use it
+                When(items__agreed_payout__isnull=False, then=F('items__weight') * F('items__agreed_payout')),
+                # If weight_unit is kg, use price_per_kg
+                When(items__weight_unit='kg', then=F('items__weight') * F('items__grade__price_per_kg')),
+                # If weight_unit is lb, use price_per_pound
+                When(items__weight_unit='lb', then=F('items__weight') * F('items__grade__price_per_pound')),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        # Sum kg weights (only items with weight_unit='kg')
+        total_kg=Sum(
+            Case(
+                When(items__weight_unit='kg', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        # Sum lb weights (only items with weight_unit='lb')
+        total_lb=Sum(
+            Case(
+                When(items__weight_unit='lb', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        )
+    )
 
-    total_kg = sum(batch.total_original_kg() for batch in paid_batches)
-    total_kg = total_kg.quantize(Decimal('0.00')) if total_kg else Decimal('0.00')
-
-    total_lb = sum(batch.total_original_lb() for batch in paid_batches)
-    total_lb = total_lb.quantize(Decimal('0.00')) if total_lb else Decimal('0.00')
-
-    # Today's data
+    # Today's data - same optimization
     today = timezone.now().date()
-    today_paid_batches = paid_batches.filter(timestamp__date=today)
+    today_stats = MineralBatch.objects.filter(
+        status='paid',
+        timestamp__date=today
+    ).aggregate(
+        total_value=Sum(
+            Case(
+                When(items__agreed_payout__isnull=False, then=F('items__weight') * F('items__agreed_payout')),
+                When(items__weight_unit='kg', then=F('items__weight') * F('items__grade__price_per_kg')),
+                When(items__weight_unit='lb', then=F('items__weight') * F('items__grade__price_per_pound')),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_kg=Sum(
+            Case(
+                When(items__weight_unit='kg', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_lb=Sum(
+            Case(
+                When(items__weight_unit='lb', then='items__weight'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        )
+    )
 
-    today_total_value = sum(batch.total_value() for batch in today_paid_batches)
-    today_total_value = today_total_value.quantize(Decimal('0.00')) if today_total_value else Decimal('0.00')
+    # Format values with defaults
+    total_value = (paid_stats['total_value'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    total_kg = (paid_stats['total_kg'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    total_lb = (paid_stats['total_lb'] or Decimal('0.00')).quantize(Decimal('0.00'))
 
-    today_total_kg = sum(batch.total_original_kg() for batch in today_paid_batches)
-    today_total_kg = today_total_kg.quantize(Decimal('0.00')) if today_total_kg else Decimal('0.00')
-
-    today_total_lb = sum(batch.total_original_lb() for batch in today_paid_batches)
-    today_total_lb = today_total_lb.quantize(Decimal('0.00')) if today_total_lb else Decimal('0.00')
+    today_total_value = (today_stats['total_value'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    today_total_kg = (today_stats['total_kg'] or Decimal('0.00')).quantize(Decimal('0.00'))
+    today_total_lb = (today_stats['total_lb'] or Decimal('0.00')).quantize(Decimal('0.00'))
 
     # Recent batches
     recent_batches = MineralBatch.objects.select_related(
@@ -472,50 +523,58 @@ def sale_transaction_list(request):
 
 @login_required
 def sale_transaction_data(request):
-    # Use shared filter
-    queryset = get_filtered_sales(request.GET)
+    try:
+        # Use shared filter
+        queryset = get_filtered_sales(request.GET)
 
-    # === KPIs: Separate original units ===
-    totals = queryset.aggregate(
-        total_count=Count('id'),
-        total_kg=Sum(
-            Case(
-                When(quantity_unit='kg', then=F('quantity')),
-                output_field=DecimalField()
-            )
-        ),
-        total_lb=Sum(
-            Case(
-                When(quantity_unit='lb', then=F('quantity')),
-                output_field=DecimalField()
-            )
-        ),
-        total_value=Sum('total_price')
-    )
+        # === KPIs: Separate original units ===
+        totals = queryset.aggregate(
+            total_count=Count('id'),
+            total_kg=Sum(
+                Case(
+                    When(quantity_unit='kg', then=F('quantity')),
+                    output_field=DecimalField()
+                )
+            ),
+            total_lb=Sum(
+                Case(
+                    When(quantity_unit='lb', then=F('quantity')),
+                    output_field=DecimalField()
+                )
+            ),
+            total_value=Sum('total_price')
+        )
 
-    # Format totals
-    total_kg = totals['total_kg'] or Decimal('0.00')
-    total_lb = totals['total_lb'] or Decimal('0.00')
-    total_value = totals['total_value'] or Decimal('0.00')
+        # Format totals
+        total_kg = totals['total_kg'] or Decimal('0.00')
+        total_lb = totals['total_lb'] or Decimal('0.00')
+        total_value = totals['total_value'] or Decimal('0.00')
 
-    paginator = Paginator(queryset, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+        paginator = Paginator(queryset, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
-    rows_html = render_to_string('office3/_sale_transaction_rows.html', {'page_obj': page_obj}, request=request)
-    pagination_html = render_to_string('office3/_pagination.html', {'page_obj': page_obj}, request=request)
+        rows_html = render_to_string('office3/_sale_transaction_rows.html', {'page_obj': page_obj}, request=request)
+        pagination_html = render_to_string('office3/_pagination.html', {'page_obj': page_obj}, request=request)
 
-    return JsonResponse({
-        'rows_html': rows_html,
-        'pagination_html': pagination_html,
-        'pagination_info': f"Showing {page_obj.start_index()} to {page_obj.end_index()} of {page_obj.paginator.count}",
-        'kpis': {
-            'total_count': int(totals['total_count']),
-            'total_kg': round(float(total_kg), 2),
-            'total_lb': round(float(total_lb), 2),
-            'total_value': round(float(total_value), 2),
-        }
-    })
+        return JsonResponse({
+            'rows_html': rows_html,
+            'pagination_html': pagination_html,
+            'pagination_info': f"Showing {page_obj.start_index()} to {page_obj.end_index()} of {page_obj.paginator.count}",
+            'kpis': {
+                'total_count': int(totals['total_count']),
+                'total_kg': round(float(total_kg), 2),
+                'total_lb': round(float(total_lb), 2),
+                'total_value': round(float(total_value), 2),
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error in sale_transaction_data: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'error': 'Failed to load sales data',
+            'detail': str(e) if request.user.is_superuser else 'An error occurred'
+        }, status=500)
+
 
 
 @require_http_methods(["GET"])
