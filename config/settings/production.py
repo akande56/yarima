@@ -10,13 +10,14 @@ from .base import env
 # GENERAL
 # ------------------------------------------------------------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "0.0.0.0",
-    "192.168.1.128",
-    "192.168.42.145",
-]
+ALLOWED_HOSTS = env.list(
+    "DJANGO_ALLOWED_HOSTS",
+    default=[
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+    ],
+)
 
 # DATABASE
 # ------------------------------------------------------------------------------
@@ -45,21 +46,20 @@ CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_NAME = "sessionid"
 CSRF_COOKIE_NAME = "csrftoken"
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost',
-    'http://localhost:8000',
-    'http://localhost:5000',
-    'http://127.0.0.1',
-    'http://127.0.0.1:8000',
-    'http://127.0.0.1:5000',
-    'http://0.0.0.0',
-    'http://0.0.0.0:8000',
-    'http://0.0.0.0:5000',
-    'http://192.168.1.128',
-    'http://192.168.1.128:5000',
-    'http://192.168.42.145',
-    'http://192.168.42.145:5000',
-]
+CSRF_TRUSTED_ORIGINS = env.list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=[
+        "http://localhost",
+        "http://localhost:8000",
+        "http://localhost:5000",
+        "http://127.0.0.1",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:5000",
+        "http://0.0.0.0",
+        "http://0.0.0.0:8000",
+        "http://0.0.0.0:5000",
+    ],
+)
 
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
